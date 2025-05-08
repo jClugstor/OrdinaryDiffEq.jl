@@ -128,7 +128,7 @@
     # because it also checks if partials are NaN
     # https://discourse.julialang.org/t/incorporating-forcing-functions-in-the-ode-model/70133/26
     if isnan(d₁)
-        @SciMLMessage("First function call produced NaNs. Exiting. Double check that none of the initial conditions, parameters, or timespan values are NaN.", integrator.opts.verbose, :thing5, :numerical)
+        @SciMLMessage("First function call produced NaNs. Exiting. Double check that none of the initial conditions, parameters, or timespan values are NaN.", integrator.opts.verbose, :init_NaNs, :error_control)
         return tdir * dtmin
     end
 
@@ -153,10 +153,6 @@
     dt₀_tdir = tdir * dt₀
 
     u₁ = zero(u0) # required by DEDataArray
-
-    @SciMLMessage(integrator.opts.verbose, :thing1, :error_control) do
-        "u₁ is $u₁"
-    end
 
     # integrator.opts.verbose(:thing1, :error_control) do 
     #     "message is $(tdir * dt₀)"
@@ -183,21 +179,6 @@
     # Avoids AD issues
     length(u0) > 0 && f₀ == f₁ && return tdir * max(dtmin, 100dt₀)
 
-    @SciMLMessage(integrator.opts.verbose, :thing3, :performance) do 
-        if length(u0) > 0 
-            "Length is greater than zero."
-        else
-            "Length is zero."
-        end 
-    end
-    # integrator.opts.verbose(:thing3, :performance) do
-    #     if length(u0) > 0
-    #         "Length is greater than zero."
-    #     else 
-    #         "Length is zero."
-    #     end
-    # end
-
     if u0 isa Array
         @inbounds @simd ivdep for i in eachindex(u0)
             tmp[i] = (f₁[i] - f₀[i]) / sk[i] * oneunit_tType
@@ -208,13 +189,6 @@
 
     d₂ = internalnorm(tmp, t) / dt₀ * oneunit_tType
     # Hairer has d₂ = sqrt(sum(abs2,tmp))/dt₀, note the lack of norm correction
-
-    @SciMLMessage("Some serious numerical issue!", integrator.opts.verbose, :thing3, :performance)
-    
-    #integrator.opts.verbose("Some serious numerical issue!", :thing5, :numerical)
-
-    @SciMLMessage("Some other numerical issue!", integrator.opts.verbose, :thing6, :numerical)
-    #integrator.opts.verbose("Some other numerical issue!", :thing6, :numerical)
 
     max_d₁d₂ = max(d₁, d₂)
     if max_d₁d₂ <= 1 // Int64(10)^(15)

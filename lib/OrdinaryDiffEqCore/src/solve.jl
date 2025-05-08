@@ -650,9 +650,7 @@ function handle_dt!(integrator)
             error("Automatic dt setting has the wrong sign. Exiting. Please report this error.")
         end
         if isnan(integrator.dt)
-            if integrator.opts.verbose
-                @warn("Automatic dt set the starting dt as NaN, causing instability. Exiting.")
-            end
+            @SciMLMessage("Automatic dt set the starting dt as NaN, causing instability. Exiting.", :dt_NaN, :error_control)
         end
     elseif integrator.opts.adaptive && integrator.dt > zero(integrator.dt) &&
            integrator.tdir < 0
