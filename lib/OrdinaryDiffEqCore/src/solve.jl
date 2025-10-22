@@ -54,7 +54,7 @@ function SciMLBase.__init(
         internalopnorm = opnorm,
         isoutofdomain = ODE_DEFAULT_ISOUTOFDOMAIN,
         unstable_check = ODE_DEFAULT_UNSTABLE_CHECK,
-        verbose = ODEVerbosity(),
+        verbose = false,
         timeseries_errors = true,
         dense_errors = false,
         advance_to_tstop = false,
@@ -94,16 +94,6 @@ function SciMLBase.__init(
            !is_mass_matrix_alg(alg) &&
            prob.f.mass_matrix != I
         error("This solver is not able to use mass matrices. For compatible solvers see https://docs.sciml.ai/DiffEqDocs/stable/solvers/dae_solve/")
-    end
-
-    if verbose isa Bool
-        if verbose
-            verbose = ODEVerbosity()
-        else
-            verbose = ODEVerbosity(None())
-        end
-    elseif verbose isa AbstractVerbosityPreset
-        verbose = ODEVerbosity(verbose)
     end
 
     if alg isa OrdinaryDiffEqRosenbrockAdaptiveAlgorithm &&
