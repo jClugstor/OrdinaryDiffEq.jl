@@ -136,6 +136,11 @@ function _initialize_dae!(
     f = SciMLBase.unwrapped_f(f)
     M = integrator.f.mass_matrix
     dtmax = integrator.opts.dtmax
+    # get_tmp_cache now returns a NamedTuple; positional indexing on a
+    # NamedTuple preserves the historical slot meanings (`[1]` = primary
+    # state scratch for the dispatch — `nl_tmp` for Newton variants,
+    # `nl_dz` for DAE, etc.). Don't switch to named access here without
+    # verifying each algorithm's slot 1 semantics.
     tmp = first(get_tmp_cache(integrator))
     u0 = integrator.u
 

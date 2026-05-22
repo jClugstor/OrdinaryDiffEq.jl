@@ -12,7 +12,7 @@ end
     k3::rateType
     ralk2::rateType
     k::rateType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     step::Int
     thread::Thread
 end
@@ -27,15 +27,16 @@ function alg_cache(
         alg::AB3, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     fsalfirst = zero(rate_prototype)
     k2 = zero(rate_prototype)
     k3 = zero(rate_prototype)
     ralk2 = zero(rate_prototype)
     k = zero(rate_prototype)
-    tmp = zero(u)
-    return AB3Cache(u, uprev, fsalfirst, k2, k3, ralk2, k, tmp, 1, alg.thread)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return AB3Cache(u, uprev, fsalfirst, k2, k3, ralk2, k, tmp_cache, 1, alg.thread)
 end
 
 function alg_cache(
@@ -57,7 +58,7 @@ end
     k3::rateType
     ralk2::rateType
     k::rateType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     step::Int
     thread::Thread
 end
@@ -72,15 +73,16 @@ function alg_cache(
         alg::ABM32, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     fsalfirst = zero(rate_prototype)
     k2 = zero(rate_prototype)
     k3 = zero(rate_prototype)
     ralk2 = zero(rate_prototype)
     k = zero(rate_prototype)
-    tmp = zero(u)
-    return ABM32Cache(u, uprev, fsalfirst, k2, k3, ralk2, k, tmp, 1, alg.thread)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return ABM32Cache(u, uprev, fsalfirst, k2, k3, ralk2, k, tmp_cache, 1, alg.thread)
 end
 
 function alg_cache(
@@ -103,7 +105,7 @@ end
     k4::rateType
     ralk2::rateType
     k::rateType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     t2::rateType
     t3::rateType
     t4::rateType
@@ -122,7 +124,8 @@ function alg_cache(
         alg::AB4, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     fsalfirst = zero(rate_prototype)
     k2 = zero(rate_prototype)
@@ -130,11 +133,11 @@ function alg_cache(
     k4 = zero(rate_prototype)
     ralk2 = zero(rate_prototype)
     k = zero(rate_prototype)
-    tmp = zero(u)
     t2 = zero(rate_prototype)
     t3 = zero(rate_prototype)
     t4 = zero(rate_prototype)
-    return AB4Cache(u, uprev, fsalfirst, k2, k3, k4, ralk2, k, tmp, t2, t3, t4, 1, alg.thread)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return AB4Cache(u, uprev, fsalfirst, k2, k3, k4, ralk2, k, tmp_cache, t2, t3, t4, 1, alg.thread)
 end
 
 function alg_cache(
@@ -158,7 +161,7 @@ end
     k4::rateType
     ralk2::rateType
     k::rateType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     t2::rateType
     t3::rateType
     t4::rateType
@@ -180,7 +183,8 @@ function alg_cache(
         alg::ABM43, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     fsalfirst = zero(rate_prototype)
     k2 = zero(rate_prototype)
@@ -188,16 +192,15 @@ function alg_cache(
     k4 = zero(rate_prototype)
     ralk2 = zero(rate_prototype)
     k = zero(rate_prototype)
-    tmp = zero(u)
     t2 = zero(rate_prototype)
     t3 = zero(rate_prototype)
     t4 = zero(rate_prototype)
     t5 = zero(rate_prototype)
     t6 = zero(rate_prototype)
     t7 = zero(rate_prototype)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return ABM43Cache(
-        u, uprev, fsalfirst, k2, k3, k4, ralk2, k,
-        tmp, t2, t3, t4, t5, t6, t7, 1, alg.thread
+        u, uprev, fsalfirst, k2, k3, k4, ralk2, k, tmp_cache, t2, t3, t4, t5, t6, t7, 1, alg.thread
     )
 end
 
@@ -222,7 +225,7 @@ end
     k4::rateType
     k5::rateType
     k::rateType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     t2::rateType
     t3::rateType
     t4::rateType
@@ -242,7 +245,8 @@ function alg_cache(
         alg::AB5, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     fsalfirst = zero(rate_prototype)
     k2 = zero(rate_prototype)
@@ -250,11 +254,11 @@ function alg_cache(
     k4 = zero(rate_prototype)
     k5 = zero(rate_prototype)
     k = zero(rate_prototype)
-    tmp = zero(u)
     t2 = zero(rate_prototype)
     t3 = zero(rate_prototype)
     t4 = zero(rate_prototype)
-    return AB5Cache(u, uprev, fsalfirst, k2, k3, k4, k5, k, tmp, t2, t3, t4, 1, alg.thread)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return AB5Cache(u, uprev, fsalfirst, k2, k3, k4, k5, k, tmp_cache, t2, t3, t4, 1, alg.thread)
 end
 
 function alg_cache(
@@ -279,7 +283,7 @@ end
     k4::rateType
     k5::rateType
     k::rateType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     t2::rateType
     t3::rateType
     t4::rateType
@@ -303,7 +307,8 @@ function alg_cache(
         alg::ABM54, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     fsalfirst = zero(rate_prototype)
     k2 = zero(rate_prototype)
@@ -311,7 +316,6 @@ function alg_cache(
     k4 = zero(rate_prototype)
     k5 = zero(rate_prototype)
     k = zero(rate_prototype)
-    tmp = zero(u)
     t2 = zero(rate_prototype)
     t3 = zero(rate_prototype)
     t4 = zero(rate_prototype)
@@ -319,8 +323,9 @@ function alg_cache(
     t6 = zero(rate_prototype)
     t7 = zero(rate_prototype)
     t8 = zero(rate_prototype)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return ABM54Cache(
-        u, uprev, fsalfirst, k2, k3, k4, k5, k, tmp,
+        u, uprev, fsalfirst, k2, k3, k4, k5, k, tmp_cache,
         t2, t3, t4, t5, t6, t7, t8, 1, alg.thread
     )
 end
@@ -372,9 +377,7 @@ end
     ϕstar_n::coefType
     β::tArrayType
     order::Int
-    atmp::uNoUnitsType
-    tmp::uType
-    utilde::uType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     tab::TabType
     step::Int
     thread::Thread
@@ -407,7 +410,8 @@ function alg_cache(
         alg::VCAB3, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     tab = BS3ConstantCache(constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits))
     bk1 = zero(rate_prototype)
@@ -437,13 +441,10 @@ function alg_cache(
     end
     β = fill(zero(t), 3)
     order = 3
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
-    tmp = zero(u)
-    utilde = zero(u)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_tmp2 = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return VCAB3Cache(
         u, uprev, fsalfirst, bs3cache, k4, ϕstar_nm1, dts, c, g, ϕ_n, ϕstar_n, β,
-        order, atmp, tmp, utilde, tab, 1, alg.thread
+        order, tmp_cache, tab, 1, alg.thread
     )
 end
 
@@ -481,9 +482,7 @@ end
     ϕstar_n::coefType
     β::tArrayType
     order::Int
-    atmp::uNoUnitsType
-    tmp::uType
-    utilde::uType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     step::Int
     thread::Thread
 end
@@ -515,7 +514,8 @@ function alg_cache(
         alg::VCAB4, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     rk1 = zero(rate_prototype)
     rk2 = zero(rate_prototype)
@@ -544,13 +544,10 @@ function alg_cache(
     end
     β = fill(zero(t), 4)
     order = 4
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
-    tmp = zero(u)
-    utilde = zero(u)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_tmp2 = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return VCAB4Cache(
         u, uprev, fsalfirst, rk4cache, k4, ϕstar_nm1, dts, c, g, ϕ_n, ϕstar_n, β,
-        order, atmp, tmp, utilde, 1, alg.thread
+        order, tmp_cache, 1, alg.thread
     )
 end
 
@@ -590,9 +587,7 @@ end
     ϕstar_n::coefType
     β::tArrayType
     order::Int
-    atmp::uNoUnitsType
-    tmp::uType
-    utilde::uType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     step::Int
     thread::Thread
 end
@@ -624,7 +619,8 @@ function alg_cache(
         alg::VCAB5, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     rk1 = zero(rate_prototype)
     rk2 = zero(rate_prototype)
@@ -653,13 +649,10 @@ function alg_cache(
     end
     β = fill(zero(t), 5)
     order = 5
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
-    tmp = zero(u)
-    utilde = zero(u)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_tmp2 = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return VCAB5Cache(
         u, uprev, fsalfirst, rk4cache, k4, ϕstar_nm1, dts, c, g, ϕ_n, ϕstar_n, β,
-        order, atmp, tmp, utilde, 1, alg.thread
+        order, tmp_cache, 1, alg.thread
     )
 end
 
@@ -701,9 +694,7 @@ end
     ϕstar_n::coefType
     β::tArrayType
     order::Int
-    atmp::uNoUnitsType
-    tmp::uType
-    utilde::uType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     tab::TabType
     step::Int
     thread::Thread
@@ -737,7 +728,8 @@ function alg_cache(
         alg::VCABM3, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     tab = BS3ConstantCache(constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits))
     bk1 = zero(rate_prototype)
@@ -771,13 +763,10 @@ function alg_cache(
     end
     β = fill(zero(t), 3)
     order = 3
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
-    tmp = zero(u)
-    utilde = zero(u)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_tmp2 = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return VCABM3Cache(
         u, uprev, fsalfirst, bs3cache, k4, ϕstar_nm1, dts, c, g, ϕ_n, ϕ_np1,
-        ϕstar_n, β, order, atmp, tmp, utilde, tab, 1, alg.thread
+        ϕstar_n, β, order, tmp_cache, tab, 1, alg.thread
     )
 end
 
@@ -819,9 +808,7 @@ end
     ϕstar_n::coefType
     β::tArrayType
     order::Int
-    atmp::uNoUnitsType
-    tmp::uType
-    utilde::uType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     step::Int
     thread::Thread
 end
@@ -857,7 +844,8 @@ function alg_cache(
         alg::VCABM4, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     rk1 = zero(rate_prototype)
     rk2 = zero(rate_prototype)
@@ -890,13 +878,10 @@ function alg_cache(
     end
     β = fill(zero(t), 4)
     order = 4
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
-    tmp = zero(u)
-    utilde = zero(u)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_tmp2 = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return VCABM4Cache(
         u, uprev, fsalfirst, rk4cache, k4, ϕstar_nm1, dts, c, g, ϕ_n, ϕ_np1,
-        ϕstar_n, β, order, atmp, tmp, utilde, 1, alg.thread
+        ϕstar_n, β, order, tmp_cache, 1, alg.thread
     )
 end
 
@@ -938,9 +923,7 @@ end
     ϕstar_n::coefType
     β::tArrayType
     order::Int
-    atmp::uNoUnitsType
-    tmp::uType
-    utilde::uType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     step::Int
     thread::Thread
 end
@@ -976,7 +959,8 @@ function alg_cache(
         alg::VCABM5, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     rk1 = zero(rate_prototype)
     rk2 = zero(rate_prototype)
@@ -1009,13 +993,10 @@ function alg_cache(
     end
     β = fill(zero(t), 5)
     order = 5
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
-    tmp = zero(u)
-    utilde = zero(u)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_tmp2 = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return VCABM5Cache(
         u, uprev, fsalfirst, rk4cache, k4, ϕstar_nm1, dts, c, g, ϕ_n, ϕ_np1,
-        ϕstar_n, β, order, atmp, tmp, utilde, 1, alg.thread
+        ϕstar_n, β, order, tmp_cache, 1, alg.thread
     )
 end
 
@@ -1041,7 +1022,7 @@ end
 end
 
 @cache mutable struct VCABMCache{
-        uType, rateType, dtType, tArrayType, cArrayType,
+        uType, rateType, uNoUnitsType, dtType, tArrayType, cArrayType,
         uNoUnitsType, coefType, dtArrayType, Thread,
     } <:
     ABMVariableCoefficientMutableCache
@@ -1059,11 +1040,9 @@ end
     β::tArrayType
     order::Int
     max_order::Int
-    atmp::uNoUnitsType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     ξ::dtType
     ξ0::dtType
-    utilde::uType
     utildem1::uType
     utildem2::uType
     utildep1::uType
@@ -1107,7 +1086,8 @@ function alg_cache(
         alg::VCABM, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     fsalfirst = zero(rate_prototype)
     k4 = zero(rate_prototype)
@@ -1129,26 +1109,21 @@ function alg_cache(
     β = fill(zero(t), 13)
     order = 1
     max_order = 12
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
-    tmp = zero(u)
     ξ = zero(dt)
     ξ0 = zero(dt)
-    utilde = zero(u)
     utildem2 = zero(u)
     utildem1 = zero(u)
     utildep1 = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
     atmpm1 = similar(u, uEltypeNoUnits)
     recursivefill!(atmpm1, false)
     atmpm2 = similar(u, uEltypeNoUnits)
     recursivefill!(atmpm2, false)
     atmpp1 = similar(u, uEltypeNoUnits)
     recursivefill!(atmpp1, false)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_tmp2 = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return VCABMCache(
         u, uprev, fsalfirst, k4, ϕstar_nm1, dts, c, g, ϕ_n, ϕ_np1, ϕstar_n, β, order,
-        max_order, atmp, tmp, ξ, ξ0, utilde, utildem1, utildem2, utildep1, atmpm1,
+        max_order, tmp_cache, ξ, ξ0, utildem1, utildem2, utildep1, atmpm1,
         atmpm2, atmpp1, 1, alg.thread
     )
 end

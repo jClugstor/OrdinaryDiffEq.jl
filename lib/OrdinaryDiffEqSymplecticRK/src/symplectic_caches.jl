@@ -4,7 +4,7 @@ abstract type HamiltonConstantCache <: OrdinaryDiffEqConstantCache end
 @cache struct SymplecticEulerCache{uType, rateType} <: HamiltonMutableCache
     u::uType
     uprev::uType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     k::rateType
     fsalfirst::rateType
 end
@@ -13,10 +13,13 @@ function alg_cache(
         alg::SymplecticEuler, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    return SymplecticEulerCache(u, uprev, zero(u), zero(rate_prototype), zero(rate_prototype))
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return SymplecticEulerCache(u, uprev, tmp_cache, zero(rate_prototype), zero(rate_prototype))
 end
+
 
 struct SymplecticEulerConstantCache <: HamiltonConstantCache end
 
@@ -33,7 +36,7 @@ end
     OrdinaryDiffEqMutableCache
     u::uType
     uprev::uType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     k::rateType
     fsalfirst::rateType
     half::uEltypeNoUnits
@@ -47,13 +50,15 @@ function alg_cache(
         alg::VelocityVerlet, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     tmp = zero(rate_prototype)
     k = zero(rate_prototype)
     fsalfirst = zero(rate_prototype)
     half = uEltypeNoUnits(1 // 2)
-    return VelocityVerletCache(u, uprev, k, tmp, fsalfirst, half)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return VelocityVerletCache(u, uprev, k, tmp_cache, fsalfirst, half)
 end
 
 function alg_cache(
@@ -69,7 +74,7 @@ end
     OrdinaryDiffEqMutableCache
     u::uType
     uprev::uType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     k::rateType
     fsalfirst::rateType
     half::uEltypeNoUnits
@@ -83,13 +88,15 @@ function alg_cache(
         alg::LeapfrogDriftKickDrift, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     tmp = zero(rate_prototype)
     k = zero(rate_prototype)
     fsalfirst = zero(rate_prototype)
     half = uEltypeNoUnits(1 // 2)
-    return LeapfrogDriftKickDriftCache(u, uprev, k, tmp, fsalfirst, half)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return LeapfrogDriftKickDriftCache(u, uprev, k, tmp_cache, fsalfirst, half)
 end
 
 function alg_cache(
@@ -105,7 +112,7 @@ end
     OrdinaryDiffEqMutableCache
     u::uType
     uprev::uType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     k::rateType
     fsalfirst::rateType
     half::uEltypeNoUnits
@@ -119,13 +126,14 @@ function alg_cache(
         alg::VerletLeapfrog, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    tmp = zero(u)
     k = zero(rate_prototype)
     fsalfirst = zero(rate_prototype)
     half = uEltypeNoUnits(1 // 2)
-    return VerletLeapfrogCache(u, uprev, k, tmp, fsalfirst, half)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return VerletLeapfrogCache(u, uprev, k, tmp_cache, fsalfirst, half)
 end
 
 function alg_cache(
@@ -142,7 +150,7 @@ end
 @cache struct SymplecticGenericCache{uType, rateType, tableauType} <: HamiltonMutableCache
     u::uType
     uprev::uType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     k::rateType
     fsalfirst::rateType
     tab::tableauType
@@ -173,15 +181,16 @@ function alg_cache(
         alg::SymplecticGenericAlgorithm, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    tmp = zero(u)
     k = zero(rate_prototype)
     fsalfirst = zero(rate_prototype)
     tab = _symplectic_tableau(
         alg, constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits)
     )
-    return SymplecticGenericCache(u, uprev, k, tmp, fsalfirst, tab)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return SymplecticGenericCache(u, uprev, k, tmp_cache, fsalfirst, tab)
 end
 
 function alg_cache(

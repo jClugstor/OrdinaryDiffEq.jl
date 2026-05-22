@@ -16,7 +16,7 @@ end
     f1ⱼ₋₁::rateType
     f1ⱼ₋₂::rateType
     f2ⱼ₋₁::rateType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     nlsolver::N
     du₁::rateType
     du₂::rateType
@@ -48,7 +48,8 @@ function alg_cache(
         alg::IRKC, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     γ, c = 1.0, 1.0
     nlsolver = build_nlsolver(
@@ -58,8 +59,6 @@ function alg_cache(
 
     gprev = zero(u)
     gprev2 = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
     fsalfirst = zero(rate_prototype)
     zprev = zero(u)
     f1ⱼ₋₁ = zero(rate_prototype)
@@ -68,8 +67,9 @@ function alg_cache(
     du₁ = zero(rate_prototype)
     du₂ = zero(rate_prototype)
     constantcache = IRKCConstantCache(50, zprev, nlsolver, du₁, du₂)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return IRKCCache(
-        u, uprev, gprev, gprev2, fsalfirst, f1ⱼ₋₁, f1ⱼ₋₂, f2ⱼ₋₁, atmp, nlsolver, du₁,
+        u, uprev, gprev, gprev2, fsalfirst, f1ⱼ₋₁, f1ⱼ₋₂, f2ⱼ₋₁, tmp_cache, nlsolver, du₁,
         du₂, constantcache
     )
 end

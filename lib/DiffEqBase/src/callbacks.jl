@@ -67,9 +67,16 @@ rightfloat(t, tdir) = isone(tdir) ? nextfloat(t) : prevfloat(t)
 # Callback handling
 
 function get_tmp(integrator::DEIntegrator, callback)
-    _tmp = get_tmp_cache(integrator)
-    _tmp === nothing && return nothing
-    _cache = first(_tmp)
+    _tup = get_tmp_cache(integrator)
+    _tup === nothing && return nothing
+    # Prefer the unified `tmp_cache.tmp` slot when available; fall back to
+    # the historical first positional element for `get_tmp_cache` dispatches
+    # that haven't been migrated to the NamedTuple form yet.
+    _cache = if hasproperty(_tup, :tmp_cache) && _tup.tmp_cache.tmp !== nothing
+        _tup.tmp_cache.tmp
+    else
+        first(_tup)
+    end
     if callback.idxs === nothing
         tmp = _cache
     elseif !(callback.idxs isa Number)

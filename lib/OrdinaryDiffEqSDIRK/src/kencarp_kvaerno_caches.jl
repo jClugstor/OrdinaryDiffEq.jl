@@ -32,7 +32,7 @@ end
     k2::kType
     k3::kType
     k4::kType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     nlsolver::N
     tab::Tab
 end
@@ -41,7 +41,8 @@ function alg_cache(
         alg::CFNLIRK3, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits},
         ::Type{tTypeNoUnits}, uprev, uprev2, f, t, dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     tab = CFNLIRK3Tableau(constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits))
     γ, c = tab.γ, tab.c3
@@ -60,8 +61,7 @@ function alg_cache(
     z₂ = zero(u)
     z₃ = zero(u)
     z₄ = nlsolver.z
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
 
-    return CFNLIRK3Cache(u, uprev, fsalfirst, z₁, z₂, z₃, z₄, k1, k2, k3, k4, atmp, nlsolver, tab)
+    return CFNLIRK3Cache(u, uprev, fsalfirst, z₁, z₂, z₃, z₄, k1, k2, k3, k4, tmp_cache, nlsolver, tab)
 end

@@ -240,7 +240,10 @@ end
     alg = unwrap_alg(integrator, false)
     # αEEst is `α - αEEst`
     (; A, c, α, αEEst, stages) = cache.tab
-    (; kk, utilde, tmp, atmp) = cache
+    (; kk) = cache
+    utilde = cache.tmp_cache.tmp2
+    tmp = cache.tmp_cache.tmp
+    atmp = cache.tmp_cache.atmp
 
     runtime_split_stages!(f, A, c, utilde, u, tmp, uprev, kk, p, t, dt, stages)
     integrator.stats.nf += stages - 1

@@ -28,9 +28,17 @@
         return result_dt
     end
 
-    if eltype(u0) <: Number && !(integrator.alg isa CompositeAlgorithm)
-        cache = get_tmp_cache(integrator)
-        sk = first(cache)
+    # Pull the shared scratch struct off the integrator's cache once.
+    # `tc.atmp` is statically `Nothing` for non-adaptive caches that
+    # parameterize as `TmpCache{uType, rateType, Nothing}` — in that case
+    # we allocate `sk` on demand. For adaptive caches the slot is a
+    # concrete array and the `=== nothing` checks below fold away.
+    tc_tup = get_tmp_cache(integrator)
+    tc = (tc_tup !== nothing && hasproperty(tc_tup, :tmp_cache)) ?
+        tc_tup.tmp_cache : nothing
+
+    if eltype(u0) <: Number && tc !== nothing && tc.atmp !== nothing
+        sk = tc.atmp
         if u0 isa Array && abstol isa Number && reltol isa Number
             @inbounds @simd ivdep for i in eachindex(u0)
                 sk[i] = abstol + internalnorm(u0[i], t) * reltol
@@ -73,16 +81,16 @@
         f(f₀, u0, p, t)
     end
 
-    # TODO: use more caches
-    #tmp = cache[2]
-
     if u0 isa Array
         if length(u0) > 0
             T = typeof(u0[1] / sk[1])
         else
             T = promote_type(eltype(u0), eltype(sk))
         end
-        tmp = similar(u0, T)
+        # Reuse `tc.tmp` when its eltype matches the required `T`; otherwise
+        # fall back to a fresh allocation (e.g. unit-aware solves).
+        tmp = (tc !== nothing && tc.tmp !== nothing && eltype(tc.tmp) === T) ?
+            tc.tmp : similar(u0, T)
         @inbounds @simd ivdep for i in eachindex(u0)
             tmp[i] = u0[i] / sk[i]
         end
@@ -128,7 +136,10 @@
             !(prob.f isa DynamicalODEFunction) ||
                 any(mm != I for mm in prob.f.mass_matrix)
         )
-        ftmp = zero(f₀)
+        ftmp = (tc !== nothing && tc.rate_tmp2 !== nothing &&
+                eltype(tc.rate_tmp2) === eltype(f₀)) ?
+            tc.rate_tmp2 : zero(f₀)
+        fill!(ftmp, zero(eltype(ftmp)))
         try
             integrator.alg.linsolve(ftmp, copy(prob.f.mass_matrix), f₀, true)
             copyto!(f₀, ftmp)
@@ -209,7 +220,16 @@
 
     dt₀_tdir = tdir * dt₀
 
-    u₁ = zero(u0) # required by DEDataArray
+    # Prefer the pre-allocated state-typed scratch when available and
+    # type-compatible; fall back to a fresh `zero(u0)` (DEDataArray needs
+    # `zero`, not `similar`).
+    u₁ = if tc !== nothing && tc.tmp2 !== nothing &&
+            eltype(tc.tmp2) === eltype(u0)
+        fill!(tc.tmp2, zero(eltype(u0)))
+        tc.tmp2
+    else
+        zero(u0)
+    end
 
     if u0 isa Array
         @inbounds @simd ivdep for i in eachindex(u0)
@@ -218,7 +238,13 @@
     else
         @.. broadcast = false u₁ = u0 + dt₀_tdir * f₀
     end
-    f₁ = zero(f₀)
+    f₁ = if tc !== nothing && tc.rate_tmp !== nothing &&
+            eltype(tc.rate_tmp) === eltype(f₀)
+        fill!(tc.rate_tmp, zero(eltype(f₀)))
+        tc.rate_tmp
+    else
+        zero(f₀)
+    end
     f(f₁, u₁, p, t + dt₀_tdir)
 
     if prob.f.mass_matrix != I && (

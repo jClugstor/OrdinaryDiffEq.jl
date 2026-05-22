@@ -119,7 +119,9 @@ end
         repeat_step = false
     )
     (; t, dt, uprev, u, f, p) = integrator
-    (; fsalfirst, k, tmp, atmp, stage_limiter!, step_limiter!, thread) = cache
+    (; fsalfirst, k, stage_limiter!, step_limiter!, thread) = cache
+    tmp = cache.tmp_cache.tmp
+    atmp = cache.tmp_cache.atmp
 
     # precalculations
     if cache isa HeunCache
@@ -216,7 +218,9 @@ end
 
 @muladd function perform_step!(integrator, cache::MidpointCache, repeat_step = false)
     (; t, dt, uprev, u, f, p) = integrator
-    (; tmp, k, fsalfirst, atmp, stage_limiter!, step_limiter!, thread) = cache
+    (; k, fsalfirst, stage_limiter!, step_limiter!, thread) = cache
+    tmp = cache.tmp_cache.tmp
+    atmp = cache.tmp_cache.atmp
     halfdt = dt / 2
     @.. broadcast = false thread = thread tmp = uprev + halfdt * fsalfirst
     stage_limiter!(k, tmp, p, t + halfdt)
@@ -318,7 +322,8 @@ end
 
 get_fsalfirstlast(cache::RK4Cache, u) = (cache.fsalfirst, cache.k)
 function initialize!(integrator, cache::RK4Cache)
-    (; tmp, fsalfirst, k₂, k₃, k₄, k) = cache
+    (; fsalfirst, k₂, k₃, k₄, k) = cache
+    tmp = cache.tmp_cache.tmp
     integrator.fsalfirst = fsalfirst
     integrator.fsallast = k
     integrator.kshortsize = 2
@@ -331,7 +336,9 @@ end
 
 @muladd function perform_step!(integrator, cache::RK4Cache, repeat_step = false)
     (; t, dt, uprev, u, f, p) = integrator
-    (; tmp, fsalfirst, k₂, k₃, k₄, k, atmp, stage_limiter!, step_limiter!, thread) = cache
+    (; fsalfirst, k₂, k₃, k₄, k, stage_limiter!, step_limiter!, thread) = cache
+    tmp = cache.tmp_cache.tmp
+    atmp = cache.tmp_cache.atmp
     k₁ = fsalfirst
     halfdt = dt / 2
     ttmp = t + halfdt
@@ -488,7 +495,10 @@ end
 @muladd function perform_step!(integrator, cache::Anas5Cache, repeat_step = false)
     (; t, dt, uprev, u, f, p) = integrator
     uidx = eachindex(integrator.uprev)
-    (; k1, k2, k3, k4, k5, k6, k7, utilde, tmp, atmp, stage_limiter!, step_limiter!, thread) = cache
+    (; k1, k2, k3, k4, k5, k6, k7, stage_limiter!, step_limiter!, thread) = cache
+    utilde = cache.tmp_cache.tmp2
+    tmp = cache.tmp_cache.tmp
+    atmp = cache.tmp_cache.atmp
     (; a21, a31, a32, a41, a42, a43, a51, a52, a53, a54, a61, a62, a63, a64, c2, c3, c4, c5, c6, b1, b3, b4, b5, b6) = cache.tab
     alg = unwrap_alg(integrator, false)
     w = alg.w

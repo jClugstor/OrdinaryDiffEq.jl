@@ -172,7 +172,8 @@ end
 
 @muladd function perform_step!(integrator, cache::ESDIRKIMEXCache, repeat_step = false)
     (; t, dt, uprev, u, p) = integrator
-    (; zs, ks, atmp, nlsolver, step_limiter!) = cache
+    (; zs, ks, nlsolver, step_limiter!) = cache
+    atmp = cache.tmp_cache.atmp
     (; tmp) = nlsolver
     tab = cache.tab
     (; Ai, bi, Ae, be, c, btilde, ebtilde, α, s, reuse_W_at_stage2, split_guess) = tab

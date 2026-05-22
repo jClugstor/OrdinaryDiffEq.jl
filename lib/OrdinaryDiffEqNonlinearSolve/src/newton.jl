@@ -67,7 +67,8 @@ function initialize!(
     cache.invγdt = inv(dt * nlsolver.γ)
     cache.tstep = integrator.t + nlsolver.c * dt
 
-    (; ustep, atmp, tstep, k, invγdt) = cache
+    (; ustep, tstep, k, invγdt) = cache
+    atmp = cache.tmp_cache.atmp
 
     if SciMLBase.has_stats(integrator)
         integrator.stats.nf += cache.cache.stats.nf
@@ -129,7 +130,8 @@ end
 @muladd function compute_step!(nlsolver::NLSolver{<:NonlinearSolveAlg, true}, integrator)
     (; uprev, t, p, dt, opts) = integrator
     (; z, tmp, ztmp, γ, α, cache, method) = nlsolver
-    (; tstep, invγdt, atmp, ustep) = cache
+    (; tstep, invγdt, ustep) = cache
+    atmp = cache.tmp_cache.atmp
 
     nlstep_data = integrator.f.nlstep_data
     nlcache = nlsolver.cache.cache
@@ -246,7 +248,8 @@ end
 @muladd function compute_step!(nlsolver::NLSolver{<:NLNewton, true}, integrator, γW)
     (; uprev, t, p, dt, opts) = integrator
     (; z, tmp, ztmp, γ, α, iter, cache, method) = nlsolver
-    (; W_γdt, ustep, tstep, k, atmp, dz, W, new_W, invγdt, linsolve, weight) = cache
+    (; W_γdt, ustep, tstep, k, dz, W, new_W, invγdt, linsolve, weight) = cache
+    atmp = cache.tmp_cache.atmp
 
     f = nlsolve_f(integrator)
     isdae = f isa DAEFunction
@@ -509,7 +512,8 @@ function relax!(
 
         (; uprev, t, p, dt, opts, isdae) = integrator
         (; z, tmp, ztmp, γ, iter, α, cache, method) = nlsolver
-        (; ustep, atmp, tstep, k, invγdt) = cache
+        (; ustep, tstep, k, invγdt) = cache
+    atmp = cache.tmp_cache.atmp
         function resid(z)
             # recompute residual (rhs)
             if isdae
@@ -582,7 +586,8 @@ function relax(
 
         (; uprev, t, p, dt, opts) = integrator
         (; z, tmp, ztmp, γ, iter, cache, method) = nlsolver
-        (; ustep, atmp, tstep, k, invγdt) = cache
+        (; ustep, tstep, k, invγdt) = cache
+    atmp = cache.tmp_cache.atmp
         function resid(z)
             # recompute residual (rhs)
             if f isa DAEFunction

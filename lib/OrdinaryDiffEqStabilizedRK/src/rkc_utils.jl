@@ -93,7 +93,7 @@ end
 function maxeig!(integrator, cache::OrdinaryDiffEqMutableCache)
     isfirst = integrator.iter == 1 || integrator.derivative_discontinuity
     (; t, dt, uprev, u, f, p, fsalfirst) = integrator
-    fz, z, atmp = cache.k, cache.tmp, cache.atmp
+    fz, z, atmp = cache.k, cache.tmp_cache.tmp, cache.tmp_cache.atmp
     ccache = cache.constantcache
     maxiter = (integrator.alg isa Union{ESERK4, ESERK5, SERK2}) ? 100 : 50
     safe = (integrator.alg isa RKCAlgs) ? 1.0 : 1.2

@@ -3,5 +3,5 @@
         alg::LinearExponential,
         cache::OrdinaryDiffEqMutableCache
     )
-    return (cache.tmp,)
+    return (tmp = cache.tmp_cache.tmp, tmp_cache = cache.tmp_cache)
 end

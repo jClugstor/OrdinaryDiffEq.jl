@@ -8,7 +8,7 @@ end
     u::uType
     uprev::uType
     uprev2::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     k₁::rateType
     k₂::rateType
     nlsolver::N
@@ -41,7 +41,8 @@ function alg_cache(
         alg::DImplicitEuler, du, u, res_prototype, rate_prototype,
         ::Type{uEltypeNoUnits}, ::Type{uBottomEltypeNoUnits},
         ::Type{tTypeNoUnits}, uprev, uprev2, f, t, dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     γ, c = 1, 1
     α = 1
@@ -51,11 +52,10 @@ function alg_cache(
         alg, u, uprev, p, t, dt, f, res_prototype, uEltypeNoUnits,
         uBottomEltypeNoUnits, tTypeNoUnits, γ, c, α, Val(true), verbose
     )
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
 
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
 
-    return DImplicitEulerCache(u, uprev, uprev2, atmp, k₁, k₂, nlsolver)
+    return DImplicitEulerCache(u, uprev, uprev2, tmp_cache, k₁, k₂, nlsolver)
 end
 
 @cache mutable struct DABDF2ConstantCache{N, dtType, rate_prototype} <:
@@ -94,7 +94,7 @@ end
     uₙ₋₂::uType
     fsalfirst::rateType
     fsalfirstprev::rateType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     nlsolver::N
     eulercache::DImplicitEulerCache
     dtₙ₋₁::dtType
@@ -104,7 +104,8 @@ function alg_cache(
         alg::DABDF2, du, u, res_prototype, rate_prototype,
         ::Type{uEltypeNoUnits}, ::Type{uBottomEltypeNoUnits},
         ::Type{tTypeNoUnits}, uprev, uprev2, f, t, dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     γ, c = Int64(1) // 1, 1
     α = Int64(1) // 1
@@ -115,8 +116,6 @@ function alg_cache(
     fsalfirst = zero(rate_prototype)
 
     fsalfirstprev = zero(rate_prototype)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
 
     k₁ = zero(rate_prototype)
     k₂ = zero(rate_prototype)
@@ -124,9 +123,10 @@ function alg_cache(
     eulercache = DImplicitEulerCache(u, uprev, uprev2, atmp, k₁, k₂, nlsolver)
 
     dtₙ₋₁ = one(dt)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
 
     return DABDF2Cache(
-        u, uprev, uprev2, fsalfirst, fsalfirstprev, atmp,
+        u, uprev, uprev2, fsalfirst, fsalfirstprev, tmp_cache,
         nlsolver, eulercache, dtₙ₋₁
     )
 end
@@ -227,8 +227,7 @@ end
     nconsteps::Int
     consfailcnt::Int
     qwait::Int # countdown to next order change consideration (CVODE-style)
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     terkm2::EEstType
     terkm1::EEstType
     terk::EEstType
@@ -247,7 +246,8 @@ function alg_cache(
         alg::DFBDF{MO}, du, u, res_prototype, rate_prototype, uEltypeNoUnits,
         uBottomEltypeNoUnits,
         tTypeNoUnits, uprev, uprev2, f, t, dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {MO}
     γ, c = 1.0, 1.0
     fsalfirst = zero(rate_prototype)
@@ -278,8 +278,6 @@ function alg_cache(
     consfailcnt = 0
     qwait = 3 # order + 2, matching nconsteps >= order + 2 for failure-free runs
     t_old = zero(t)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, zero(uEltypeNoUnits))
     u₀ = similar(u)
     equi_ts = similar(ts)
     tmp = similar(u)
@@ -289,10 +287,11 @@ function alg_cache(
     dense = [zero(u) for _ in 1:(2 * (max_order + 1))]  # first half for integrator.k, second half as scratch
 
     fd_weights = zeros(typeof(t), max_order + 1, max_order + 1)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
 
     return DFBDFCache(
         fsalfirst, nlsolver, ts, ts_tmp, t_old, u_history, order, prev_order,
-        u_corrector, u₀, bdf_coeffs, Val(MO), nconsteps, consfailcnt, qwait, tmp, atmp,
+        u_corrector, u₀, bdf_coeffs, Val(MO), nconsteps, consfailcnt, qwait, tmp_cache,
         terkm2, terkm1, terk, terkp1, terk_tmp, terkp1_tmp, r, weights, equi_ts,
         iters_from_event, dense, fd_weights
     )

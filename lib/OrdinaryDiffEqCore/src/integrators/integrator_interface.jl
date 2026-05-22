@@ -167,7 +167,10 @@ end
     return get_tmp_cache(integrator::ODEIntegrator, integrator.alg, integrator.cache)
 end
 
-# the ordering of the cache arrays is important!!!
+# Each dispatch returns a NamedTuple. The unified `tmp_cache` field is
+# always last (so existing positional callers like `first(tup)` / `tup[1]`
+# keep their historical semantics). New code should reach for the named
+# fields, especially `.tmp_cache` for the shared `TmpCache` buffers.
 @inline function SciMLBase.get_tmp_cache(
         integrator, alg::OrdinaryDiffEqAlgorithm,
         cache::OrdinaryDiffEqConstantCache
@@ -178,27 +181,33 @@ end
         integrator, alg::OrdinaryDiffEqAlgorithm,
         cache::OrdinaryDiffEqMutableCache
     )
-    return (cache.tmp,)
+    return (tmp = cache.tmp_cache.tmp, tmp_cache = cache.tmp_cache)
 end
 @inline function SciMLBase.get_tmp_cache(
         integrator,
         alg::OrdinaryDiffEqNewtonAdaptiveAlgorithm,
         cache::OrdinaryDiffEqMutableCache
     )
-    return (cache.nlsolver.tmp, cache.atmp)
+    return (nl_tmp = cache.nlsolver.tmp, atmp = cache.tmp_cache.atmp,
+            tmp_cache = cache.tmp_cache)
 end
 @inline function SciMLBase.get_tmp_cache(
         integrator, alg::OrdinaryDiffEqNewtonAlgorithm,
         cache::OrdinaryDiffEqMutableCache
     )
-    return (cache.nlsolver.tmp, cache.nlsolver.z)
+    return (nl_tmp = cache.nlsolver.tmp, nl_z = cache.nlsolver.z,
+            tmp_cache = cache.tmp_cache)
 end
 @inline function SciMLBase.get_tmp_cache(
         integrator,
         alg::OrdinaryDiffEqRosenbrockAdaptiveAlgorithm,
         cache::OrdinaryDiffEqMutableCache
     )
-    return (cache.tmp, cache.linsolve_tmp)
+    # `linsolve_tmp` was a rateType inline field; it now lives at
+    # `tmp_cache.rate_tmp`.
+    return (tmp = cache.tmp_cache.tmp,
+            linsolve_tmp = cache.tmp_cache.rate_tmp,
+            tmp_cache = cache.tmp_cache)
 end
 
 @inline function SciMLBase.get_tmp_cache(
@@ -206,21 +215,25 @@ end
         alg::OrdinaryDiffEqAdaptiveExponentialAlgorithm,
         cache::OrdinaryDiffEqMutableCache
     )
-    return (cache.tmp, cache.utilde)
+    # `utilde` (second u-typed scratch) now lives at `tmp_cache.tmp2`.
+    return (tmp = cache.tmp_cache.tmp,
+            utilde = cache.tmp_cache.tmp2,
+            tmp_cache = cache.tmp_cache)
 end
 @inline function SciMLBase.get_tmp_cache(
         integrator,
         alg::OrdinaryDiffEqExponentialAlgorithm,
         cache::OrdinaryDiffEqMutableCache
     )
-    return (cache.tmp, cache.dz)
+    return (tmp = cache.tmp_cache.tmp, dz = cache.dz,
+            tmp_cache = cache.tmp_cache)
 end
 @inline function SciMLBase.get_tmp_cache(
         integrator,
         alg::OrdinaryDiffEqLinearExponentialAlgorithm,
         cache::OrdinaryDiffEqMutableCache
     )
-    return (cache.tmp,)
+    return (tmp = cache.tmp_cache.tmp, tmp_cache = cache.tmp_cache)
 end
 @inline function SciMLBase.get_tmp_cache(
         integrator, alg::CompositeAlgorithm,
@@ -253,7 +266,9 @@ end
         integrator, alg::DAEAlgorithm,
         cache::OrdinaryDiffEqMutableCache
     )
-    return (cache.nlsolver.cache.dz, cache.atmp)
+    return (nl_dz = cache.nlsolver.cache.dz,
+            atmp = cache.tmp_cache.atmp,
+            tmp_cache = cache.tmp_cache)
 end
 
 # SDE cache fallbacks — mirror ODE's pattern for SDE types

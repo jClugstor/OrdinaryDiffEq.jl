@@ -8,7 +8,8 @@ end
 
 @muladd function perform_step!(integrator, cache::NewmarkBetaCache, repeat_step = false)
     (; t, dt, u, f, p) = integrator
-    (; β, γ, thread, nlcache, atmp) = cache
+    (; β, γ, thread, nlcache) = cache
+    atmp = cache.tmp_cache.atmp
 
     # Evaluate predictor
     vₙ, uₙ = integrator.uprev.x
@@ -68,7 +69,8 @@ end
         integrator, cache::NewmarkBetaConstantCache, repeat_step = false
     )
     (; t, u, dt, f, p) = integrator
-    (; β, γ, thread, nlsolver, atmp) = cache
+    (; β, γ, thread, nlsolver) = cache
+    atmp = cache.tmp_cache.atmp
 
     # Evaluate predictor
     if integrator.derivative_discontinuity || !integrator.opts.adaptive
@@ -127,7 +129,8 @@ end
 
 @muladd function perform_step!(integrator, cache::GeneralizedAlphaCache, repeat_step = false)
     (; t, dt, u, f, p) = integrator
-    (; αm, αf, β, γ, thread, nlcache, atmp) = cache
+    (; αm, αf, β, γ, thread, nlcache) = cache
+    atmp = cache.tmp_cache.atmp
 
     vₙ, uₙ = integrator.uprev.x
     if integrator.derivative_discontinuity || !integrator.opts.adaptive
@@ -186,7 +189,8 @@ end
         integrator, cache::GeneralizedAlphaConstantCache, repeat_step = false
     )
     (; t, u, dt, f, p) = integrator
-    (; αm, αf, β, γ, thread, nlsolver, atmp) = cache
+    (; αm, αf, β, γ, thread, nlsolver) = cache
+    atmp = cache.tmp_cache.atmp
 
     if integrator.derivative_discontinuity || !integrator.opts.adaptive
         integrator.fsalfirst .= f(u, p, t + dt)

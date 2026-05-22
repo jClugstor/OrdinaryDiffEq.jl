@@ -79,15 +79,14 @@ end
 @cache struct KYKSSPRK42Cache{
         uType,
         rateType,
-        TabType,
-        StageLimiter,
+        TabType, StageLimiter,
         StepLimiter,
         Thread,
     } <: SSPRKMutableCache
     u::uType
     uprev::uType
     k::rateType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     fsalfirst::rateType
     tab::TabType
     stage_limiter!::StageLimiter
@@ -139,17 +138,18 @@ function alg_cache(
         alg::KYKSSPRK42, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    tmp = zero(u)
     k = zero(rate_prototype)
     fsalfirst = zero(rate_prototype)
     tab = KYKSSPRK42ConstantCache(
         constvalue(uBottomEltypeNoUnits),
         constvalue(tTypeNoUnits)
     )
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return KYKSSPRK42Cache(
-        u, uprev, k, tmp, fsalfirst, tab, alg.stage_limiter!, alg.step_limiter!,
+        u, uprev, k, tmp_cache, fsalfirst, tab, alg.stage_limiter!, alg.step_limiter!,
         alg.thread
     )
 end
@@ -169,7 +169,7 @@ end
     uprev::uType
     k::rateType
     fsalfirst::rateType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     tab::TabType
     stage_limiter!::StageLimiter
     step_limiter!::StepLimiter
@@ -218,9 +218,9 @@ function alg_cache(
         alg::SSPRK53, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    tmp = zero(u)
     k = zero(rate_prototype)
     if calck
         fsalfirst = zero(k)
@@ -228,8 +228,9 @@ function alg_cache(
         fsalfirst = k
     end
     tab = SSPRK53ConstantCache(constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits))
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return SSPRK53Cache(
-        u, uprev, k, fsalfirst, tmp, tab, alg.stage_limiter!, alg.step_limiter!,
+        u, uprev, k, fsalfirst, tmp_cache, tab, alg.stage_limiter!, alg.step_limiter!,
         alg.thread
     )
 end
@@ -411,7 +412,7 @@ end
     uprev::uType
     k::rateType
     fsalfirst::rateType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     tab::TabType
     stage_limiter!::StageLimiter
     step_limiter!::StepLimiter
@@ -458,9 +459,9 @@ function alg_cache(
         alg::SSPRK53_H, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    tmp = zero(u)
     k = zero(rate_prototype)
     if calck
         fsalfirst = zero(k)
@@ -468,8 +469,9 @@ function alg_cache(
         fsalfirst = k
     end
     tab = SSPRK53_HConstantCache(constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits))
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return SSPRK53_HCache(
-        u, uprev, k, fsalfirst, tmp, tab, alg.stage_limiter!, alg.step_limiter!,
+        u, uprev, k, fsalfirst, tmp_cache, tab, alg.stage_limiter!, alg.step_limiter!,
         alg.thread
     )
 end
@@ -489,7 +491,7 @@ end
     uprev::uType
     k::rateType
     fsalfirst::rateType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     u₂::uType
     tab::TabType
     stage_limiter!::StageLimiter
@@ -544,9 +546,9 @@ function alg_cache(
         alg::SSPRK63, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    tmp = zero(u)
     u₂ = zero(u)
     k = zero(rate_prototype)
     if calck
@@ -555,8 +557,9 @@ function alg_cache(
         fsalfirst = k
     end
     tab = SSPRK63ConstantCache(constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits))
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return SSPRK63Cache(
-        u, uprev, k, fsalfirst, tmp, u₂, tab, alg.stage_limiter!,
+        u, uprev, k, fsalfirst, tmp_cache, u₂, tab, alg.stage_limiter!,
         alg.step_limiter!, alg.thread
     )
 end
@@ -576,7 +579,7 @@ end
     uprev::uType
     k::rateType
     fsalfirst::rateType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     u₁::uType
     tab::TabType
     stage_limiter!::StageLimiter
@@ -639,9 +642,9 @@ function alg_cache(
         alg::SSPRK73, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    tmp = zero(u)
     u₁ = zero(u)
     k = zero(rate_prototype)
     if calck
@@ -650,8 +653,9 @@ function alg_cache(
         fsalfirst = k
     end
     tab = SSPRK73ConstantCache(constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits))
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return SSPRK73Cache(
-        u, uprev, k, fsalfirst, tmp, u₁, tab, alg.stage_limiter!,
+        u, uprev, k, fsalfirst, tmp_cache, u₁, tab, alg.stage_limiter!,
         alg.step_limiter!, alg.thread
     )
 end
@@ -671,7 +675,7 @@ end
     uprev::uType
     k::rateType
     fsalfirst::rateType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     u₂::uType
     u₃::uType
     tab::TabType
@@ -741,9 +745,9 @@ function alg_cache(
         alg::SSPRK83, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    tmp = zero(u)
     u₂ = zero(u)
     u₃ = zero(u)
     k = zero(rate_prototype)
@@ -753,8 +757,9 @@ function alg_cache(
         fsalfirst = k
     end
     tab = SSPRK83ConstantCache(constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits))
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return SSPRK83Cache(
-        u, uprev, k, fsalfirst, tmp, u₂, u₃, tab, alg.stage_limiter!,
+        u, uprev, k, fsalfirst, tmp_cache, u₂, u₃, tab, alg.stage_limiter!,
         alg.step_limiter!, alg.thread
     )
 end
@@ -776,8 +781,7 @@ end
     uprev::uType
     k::rateType
     fsalfirst::rateType
-    utilde::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     tab::TabType
     stage_limiter!::StageLimiter
     step_limiter!::StepLimiter
@@ -804,7 +808,8 @@ function alg_cache(
         alg::SSPRK43, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     k = zero(rate_prototype)
     if calck
@@ -812,12 +817,10 @@ function alg_cache(
     else
         fsalfirst = k
     end
-    utilde = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
     tab = SSPRK43ConstantCache(constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits))
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp2 = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return SSPRK43Cache(
-        u, uprev, k, fsalfirst, utilde, atmp, tab, alg.stage_limiter!,
+        u, uprev, k, fsalfirst, tmp_cache, tab, alg.stage_limiter!,
         alg.step_limiter!, alg.thread
     )
 end
@@ -843,8 +846,7 @@ end
     uprev::uType
     k::rateType
     fsalfirst::rateType
-    utilde::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     stage_limiter!::StageLimiter
     step_limiter!::StepLimiter
     thread::Thread
@@ -856,7 +858,8 @@ function alg_cache(
         alg::SSPRK432, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     k = zero(rate_prototype)
     if calck
@@ -864,11 +867,9 @@ function alg_cache(
     else
         fsalfirst = k
     end
-    utilde = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp2 = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return SSPRK432Cache(
-        u, uprev, k, fsalfirst, utilde, atmp, alg.stage_limiter!,
+        u, uprev, k, fsalfirst, tmp_cache, alg.stage_limiter!,
         alg.step_limiter!, alg.thread
     )
 end
@@ -892,7 +893,7 @@ end
     u_2::uType
     u_1::uType
     k::rateType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     dts::dtArrayType
     dtf::dtArrayType
     μ::dtType
@@ -927,9 +928,9 @@ function alg_cache(
     u_2 = zero(u)
     u_1 = zero(u)
     k = zero(rate_prototype)
-    tmp = zero(u)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing)
     return SSPRKMSVS32Cache(
-        u, uprev, fsalfirst, u_2, u_1, k, tmp, dts, dtf, μ, 0.5,
+        u, uprev, fsalfirst, u_2, u_1, k, tmp_cache, dts, dtf, μ, 0.5,
         alg.stage_limiter!, alg.step_limiter!, alg.thread, 1
     )
 end
@@ -965,7 +966,7 @@ end
     k1::rateType
     k2::rateType
     k3::rateType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     stage_limiter!::StageLimiter
     step_limiter!::StepLimiter
     thread::Thread
@@ -997,9 +998,9 @@ function alg_cache(
     k1 = zero(rate_prototype)
     k2 = zero(rate_prototype)
     k3 = zero(rate_prototype)
-    tmp = zero(u)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing)
     return SSPRKMSVS43Cache(
-        u, uprev, fsalfirst, u_3, u_2, u_1, k, k1, k2, k3, tmp,
+        u, uprev, fsalfirst, u_3, u_2, u_1, k, k1, k2, k3, tmp_cache,
         alg.stage_limiter!, alg.step_limiter!, alg.thread, 1
     )
 end
@@ -1031,8 +1032,7 @@ end
     uprev::uType
     k::rateType
     fsalfirst::rateType
-    utilde::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     stage_limiter!::StageLimiter
     step_limiter!::StepLimiter
     thread::Thread
@@ -1044,7 +1044,8 @@ function alg_cache(
         alg::SSPRK932, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     k = zero(rate_prototype)
     if calck
@@ -1052,11 +1053,9 @@ function alg_cache(
     else
         fsalfirst = k
     end
-    utilde = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp2 = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return SSPRK932Cache(
-        u, uprev, k, fsalfirst, utilde, atmp, alg.stage_limiter!,
+        u, uprev, k, fsalfirst, tmp_cache, alg.stage_limiter!,
         alg.step_limiter!, alg.thread
     )
 end
@@ -1079,7 +1078,7 @@ end
     k₃::rateType
     u₂::uType
     u₃::uType
-    tmp::uType # should be u₄, but tmp is needed for callbacks
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     tab::TabType
     stage_limiter!::StageLimiter
     step_limiter!::StepLimiter
@@ -1143,7 +1142,7 @@ function alg_cache(
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     u₂ = zero(u)
     u₃ = zero(u)
-    tmp = zero(u)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing)
     k = zero(rate_prototype)
     if calck
         fsalfirst = zero(k)
@@ -1153,7 +1152,7 @@ function alg_cache(
     k₃ = zero(rate_prototype)
     tab = SSPRK54ConstantCache(constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits))
     return SSPRK54Cache(
-        u, uprev, k, fsalfirst, k₃, u₂, u₃, tmp, tab, alg.stage_limiter!,
+        u, uprev, k, fsalfirst, k₃, u₂, u₃, tmp_cache, tab, alg.stage_limiter!,
         alg.step_limiter!, alg.thread
     )
 end
@@ -1174,7 +1173,7 @@ end
     k::rateType
     fsalfirst::rateType
     k₄::rateType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     stage_limiter!::StageLimiter
     step_limiter!::StepLimiter
     thread::Thread
@@ -1186,9 +1185,9 @@ function alg_cache(
         alg::SSPRK104, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    tmp = zero(u)
     k = zero(rate_prototype)
     if calck
         fsalfirst = zero(k)
@@ -1196,8 +1195,9 @@ function alg_cache(
         fsalfirst = k
     end
     k₄ = zero(rate_prototype)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return SSPRK104Cache(
-        u, uprev, k, fsalfirst, k₄, tmp, alg.stage_limiter!, alg.step_limiter!,
+        u, uprev, k, fsalfirst, k₄, tmp_cache, alg.stage_limiter!, alg.step_limiter!,
         alg.thread
     )
 end
@@ -1494,7 +1494,7 @@ end
     k₃::rateType
     u₂::uType
     u₃::uType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     tab::TabType
     stage_limiter!::StageLimiter
     step_limiter!::StepLimiter
@@ -1505,11 +1505,11 @@ function alg_cache(
         alg::pRRK54, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     u₂ = zero(u)
     u₃ = zero(u)
-    tmp = zero(u)
     k = zero(rate_prototype)
     if calck
         fsalfirst = zero(k)
@@ -1518,8 +1518,9 @@ function alg_cache(
     end
     k₃ = zero(rate_prototype)
     tab = pRRK54ConstantCache(constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits), alg.kappa)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return pRRK54Cache(
-        u, uprev, k, fsalfirst, k₃, u₂, u₃, tmp, tab, alg.stage_limiter!,
+        u, uprev, k, fsalfirst, k₃, u₂, u₃, tmp_cache, tab, alg.stage_limiter!,
         alg.step_limiter!, alg.thread
     )
 end

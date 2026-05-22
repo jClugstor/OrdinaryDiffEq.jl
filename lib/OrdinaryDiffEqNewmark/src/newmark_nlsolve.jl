@@ -42,7 +42,7 @@ end
     (; f, dt, t, p) = cache
     (; β, γ, αm, αf, aₙ, vₙ, uₙ) = cache
 
-    atmp = get_tmp(cache.atmp, aₙ₊₁)
+    atmp = get_tmp(cache.tmp_cache.atmp, aₙ₊₁)
     vₙ₊₁ = get_tmp(cache.vₙ₊₁, aₙ₊₁)
     uₙ₊₁ = get_tmp(cache.uₙ₊₁, aₙ₊₁)
 

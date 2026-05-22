@@ -109,6 +109,13 @@ Base.@constprop :aggressive function _ode_init(
         noise = nothing,
         c = nothing,
         rate_constants = nothing,
+        # When `false`, skips preallocating the initdt-only slots of the
+        # shared `TmpCache` (saves memory for very large state at the cost
+        # of allocating fresh on every `auto_dt_reset!` / `reinit!`).
+        # NOTE: Currently propagated to `alg_cache(...)` only for sublibs
+        # whose `alg_cache` methods accept the kwarg. Once every sublib is
+        # migrated, the call site below will forward this universally.
+        preallocate_init_dt_extras::Bool = true,
         # Pre-built cache for SDE delegation (skip alg_cache call)
         _cache = nothing,
         # Pre-built u/uprev for SDE delegation (cache holds references to these)

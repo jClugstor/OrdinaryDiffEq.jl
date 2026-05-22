@@ -38,7 +38,7 @@ end
     fsalfirst::rateType
     fsalfirstprev::rateType
     zₙ₋₁::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     nlsolver::N
     eulercache::ImplicitEulerCache
     dtₙ₋₁::dtType
@@ -49,7 +49,8 @@ function alg_cache(
         alg::ABDF2, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits},
         ::Type{tTypeNoUnits}, uprev, uprev2, f, t, dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     γ, c = Int64(2) // 3, 1
     nlsolver = build_nlsolver(
@@ -59,8 +60,6 @@ function alg_cache(
     fsalfirst = zero(rate_prototype)
 
     fsalfirstprev = zero(rate_prototype)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
     algebraic_vars = f.mass_matrix === I ? nothing :
         [all(iszero, x) for x in eachcol(f.mass_matrix)]
 
@@ -70,9 +69,10 @@ function alg_cache(
 
     dtₙ₋₁ = one(dt)
     zₙ₋₁ = zero(u)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
 
     return ABDF2Cache(
-        u, uprev, uprev2, fsalfirst, fsalfirstprev, zₙ₋₁, atmp,
+        u, uprev, uprev2, fsalfirst, fsalfirstprev, zₙ₋₁, tmp_cache,
         nlsolver, eulercache, dtₙ₋₁, alg.step_limiter!
     )
 end
@@ -200,8 +200,7 @@ end
     D2::coefType2
     R::coefType
     U::coefType
-    atmp::uNoUnitsType
-    utilde::uType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     nlsolver::N
     dtₙ₋₁::dtType
     step_limiter!::StepLimiter
@@ -236,7 +235,8 @@ function alg_cache(
         alg::QNDF1, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     γ, c = zero(inv((1 - alg.kappa))), 1
     nlsolver = build_nlsolver(
@@ -257,14 +257,12 @@ function alg_cache(
 
     U!(1, U)
 
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
-    utilde = zero(u)
     uprev2 = zero(u)
     dtₙ₋₁ = zero(dt)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp2 = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
 
     return QNDF1Cache(
-        uprev2, fsalfirst, D, D2, R, U, atmp, utilde, nlsolver, dtₙ₋₁, alg.step_limiter!
+        uprev2, fsalfirst, D, D2, R, U, tmp_cache, nlsolver, dtₙ₋₁, alg.step_limiter!
     )
 end
 
@@ -300,8 +298,7 @@ end
     D2::coefType2
     R::coefType
     U::coefType
-    atmp::uNoUnitsType
-    utilde::uType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     nlsolver::N
     dtₙ₋₁::dtType
     dtₙ₋₂::dtType
@@ -339,7 +336,8 @@ function alg_cache(
         alg::QNDF2, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     γ, c = zero(inv((1 - alg.kappa))), 1
     nlsolver = build_nlsolver(
@@ -361,17 +359,14 @@ function alg_cache(
 
     U!(2, U)
 
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
-    utilde = zero(u)
     uprev2 = zero(u)
     uprev3 = zero(u)
     dtₙ₋₁ = zero(dt)
     dtₙ₋₂ = zero(dt)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp2 = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
 
     return QNDF2Cache(
-        uprev2, uprev3, fsalfirst, D, D2, R, U, atmp,
-        utilde, nlsolver, dtₙ₋₁, dtₙ₋₂, alg.step_limiter!
+        uprev2, uprev3, fsalfirst, D, D2, R, U, tmp_cache, nlsolver, dtₙ₋₁, dtₙ₋₂, alg.step_limiter!
     )
 end
 
@@ -446,13 +441,13 @@ function alg_cache(
 end
 
 @cache mutable struct QNDFCache{
-        MO, UType, RUType, rateType, N, coefType, dtType, EEstType,
+        MO, UType, RUType, rateType, uNoUnitsType, N, coefType, dtType, EEstType,
         gammaType, uType, uNoUnitsType, StepLimiter,
     } <:
     BDFMutableCache
     fsalfirst::rateType
     dd::uType
-    utilde::uType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     utildem1::uType
     utildep1::uType
     ϕ::uType
@@ -474,7 +469,6 @@ end
     EEst1::EEstType #Error Estimator for k-1 order
     EEst2::EEstType #Error Estimator for k+1 order
     γₖ::gammaType
-    atmp::uNoUnitsType
     atmpm1::uNoUnitsType
     atmpp1::uNoUnitsType
     dense::Vector{uType}
@@ -487,7 +481,8 @@ function alg_cache(
         alg::QNDF{MO}, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {
         uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits,
     } where {MO}
@@ -499,7 +494,6 @@ function alg_cache(
     )
     fsalfirst = zero(rate_prototype)
     dd = zero(u)
-    utilde = zero(u)
     utildem1 = zero(u)
     utildep1 = zero(u)
     ϕ = zero(u)
@@ -528,10 +522,11 @@ function alg_cache(
     γₖ = ntuple(k -> sum(tTypeNoUnits(Int64(1) // j) for j in 1:k), Val(max_order))
 
     dense = [zero(u) for _ in 1:max_order]
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp2 = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
 
     return QNDFCache(
-        fsalfirst, dd, utilde, utildem1, utildep1, ϕ, u₀, nlsolver, U, R, RU, D, Dtmp,
-        tmp2, prevD, 1, 1, Val(max_order), dtprev, 0, 0, EEst1, EEst2, γₖ, atmp,
+        fsalfirst, dd, tmp_cache, utildem1, utildep1, ϕ, u₀, nlsolver, U, R, RU, D, Dtmp,
+        tmp2, prevD, 1, 1, Val(max_order), dtprev, 0, 0, EEst1, EEst2, γₖ,
         atmpm1, atmpp1, dense, alg.step_limiter!
     )
 end
@@ -545,7 +540,7 @@ end
     z₁::uType
     z₂::uType
     tmp2::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     nlsolver::N
 end
 
@@ -553,7 +548,8 @@ function alg_cache(
         alg::MEBDF2, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits},
         ::Type{tTypeNoUnits}, uprev, uprev2, f, t, dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     γ, c = 1, 1
     nlsolver = build_nlsolver(
@@ -566,10 +562,9 @@ function alg_cache(
     z₂ = zero(u)
     z₃ = zero(u)
     tmp2 = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
 
-    return MEBDF2Cache(u, uprev, uprev2, fsalfirst, z₁, z₂, tmp2, atmp, nlsolver)
+    return MEBDF2Cache(u, uprev, uprev2, fsalfirst, z₁, z₂, tmp2, tmp_cache, nlsolver)
 end
 
 mutable struct MEBDF2ConstantCache{N} <: OrdinaryDiffEqConstantCache
@@ -700,8 +695,7 @@ end
     nconsteps::Int # consecutive success steps
     consfailcnt::Int #consecutive failed step counts
     qwait::Int # countdown to next order change consideration (CVODE-style)
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     terkm2::EEstType
     terkm1::EEstType
     terk::EEstType #terk corresponds to hᵏyᵏ(tₙ₊₁)
@@ -724,7 +718,8 @@ function alg_cache(
         alg::FBDF{MO}, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {
         MO, uEltypeNoUnits, uBottomEltypeNoUnits,
         tTypeNoUnits,
@@ -758,8 +753,6 @@ function alg_cache(
     consfailcnt = 0
     qwait = 3 # order + 2, matching nconsteps >= order + 2 for failure-free runs
     t_old = zero(t)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, zero(uEltypeNoUnits))
     u₀ = similar(u)
     equi_ts = similar(ts)
     tmp = similar(u)
@@ -780,10 +773,11 @@ function alg_cache(
         rrtol = alg.stald_rrtol,
         tiny = alg.stald_tiny,
     )
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
 
     return FBDFCache(
         fsalfirst, nlsolver, ts, ts_tmp, t_old, u_history, order, prev_order,
-        u_corrector, u₀, bdf_coeffs, Val(MO), nconsteps, consfailcnt, qwait, tmp, atmp,
+        u_corrector, u₀, bdf_coeffs, Val(MO), nconsteps, consfailcnt, qwait, tmp_cache,
         terkm2, terkm1, terk, terkp1, terk_tmp, terkp1_tmp, r, weights, equi_ts,
         iters_from_event, dense, alg.step_limiter!, fd_weights, stald
     )

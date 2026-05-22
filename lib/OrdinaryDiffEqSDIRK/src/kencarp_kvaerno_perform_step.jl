@@ -112,7 +112,8 @@ end
 
 @muladd function perform_step!(integrator, cache::CFNLIRK3Cache, repeat_step = false)
     (; t, dt, uprev, u, p) = integrator
-    (; z₁, z₂, z₃, z₄, k1, k2, k3, k4, atmp, nlsolver) = cache
+    (; z₁, z₂, z₃, z₄, k1, k2, k3, k4, nlsolver) = cache
+    atmp = cache.tmp_cache.atmp
     (; tmp) = nlsolver
     (; γ, a31, a32, a41, a42, a43, c2, c3) = cache.tab
     (; ea21, ea31, ea32, ea41, ea42, ea43, eb1, eb2, eb3, eb4) = cache.tab

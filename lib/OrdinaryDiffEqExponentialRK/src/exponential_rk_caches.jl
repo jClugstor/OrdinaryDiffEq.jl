@@ -153,7 +153,7 @@ end
     ExpRKCache
     u::uType
     uprev::uType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     dz::uType
     rtmp::rateType
     G::rateType
@@ -169,7 +169,8 @@ function alg_cache(
         alg::LawsonEuler, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     tmp, dz = (zero(u) for i in 1:2)                            # uType caches
     rtmp, G, du1 = (zero(rate_prototype) for i in 1:3)             # rateType caches
@@ -205,14 +206,15 @@ function alg_cache(
         A = size(f.f1.f) == () ? convert(Number, f.f1.f) : convert(AbstractMatrix, f.f1.f)
         exphA = expRK_operators(alg, dt, A)
     end
-    return LawsonEulerCache(u, uprev, tmp, dz, rtmp, G, du1, jac_config, uf, J, exphA, KsCache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return LawsonEulerCache(u, uprev, tmp_cache, dz, rtmp, G, du1, jac_config, uf, J, exphA, KsCache)
 end
 
 @cache struct NorsettEulerCache{uType, rateType, JCType, FType, JType, expType, KsType} <:
     ExpRKCache
     u::uType
     uprev::uType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     dz::uType
     rtmp::rateType
     G::rateType
@@ -228,7 +230,8 @@ function alg_cache(
         alg::NorsettEuler, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     tmp, dz = (zero(u) for i in 1:2)                # uType caches
     rtmp, G, du1 = (zero(rate_prototype) for i in 1:3) # rateType caches
@@ -240,14 +243,15 @@ function alg_cache(
         alg, u, uEltypeNoUnits, uprev, f, t,
         dt, p, du1, tmp, dz, plist
     ) # other caches
-    return NorsettEulerCache(u, uprev, tmp, dz, rtmp, G, du1, jac_config, uf, J, phihA, KsCache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return NorsettEulerCache(u, uprev, tmp_cache, dz, rtmp, G, du1, jac_config, uf, J, phihA, KsCache)
 end
 
 @cache struct ETDRK2Cache{uType, rateType, JCType, FType, JType, opType, KsType} <:
     ExpRKCache
     u::uType
     uprev::uType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     dz::uType
     rtmp::rateType
     F2::rateType
@@ -263,7 +267,8 @@ function alg_cache(
         alg::ETDRK2, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     tmp, dz = (zero(u) for i in 1:2)                 # uType caches
     rtmp, F2, du1 = (zero(rate_prototype) for i in 1:3) # rateType caches
@@ -275,14 +280,15 @@ function alg_cache(
         alg, u, uEltypeNoUnits, uprev, f, t,
         dt, p, du1, tmp, dz, plist
     ) # other caches
-    return ETDRK2Cache(u, uprev, tmp, dz, rtmp, F2, du1, jac_config, uf, J, ops, KsCache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return ETDRK2Cache(u, uprev, tmp_cache, dz, rtmp, F2, du1, jac_config, uf, J, ops, KsCache)
 end
 
 @cache struct ETDRK3Cache{uType, rateType, JCType, FType, JType, opType, KsType} <:
     ExpRKCache
     u::uType
     uprev::uType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     dz::uType
     rtmp::rateType
     Au::rateType
@@ -300,7 +306,8 @@ function alg_cache(
         alg::ETDRK3, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     tmp, dz = (zero(u) for i in 1:2)                         # uType caches
     rtmp, Au, F2, F3, du1 = (zero(rate_prototype) for i in 1:5) # rateType caches
@@ -312,14 +319,15 @@ function alg_cache(
         alg, u, uEltypeNoUnits, uprev, f, t,
         dt, p, du1, tmp, dz, plist
     ) # other caches
-    return ETDRK3Cache(u, uprev, tmp, dz, rtmp, Au, F2, F3, du1, jac_config, uf, J, ops, KsCache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return ETDRK3Cache(u, uprev, tmp_cache, dz, rtmp, Au, F2, F3, du1, jac_config, uf, J, ops, KsCache)
 end
 
 @cache struct ETDRK4Cache{uType, rateType, JCType, FType, JType, opType, KsType} <:
     ExpRKCache
     u::uType
     uprev::uType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     dz::uType
     rtmp::rateType
     Au::rateType
@@ -338,7 +346,8 @@ function alg_cache(
         alg::ETDRK4, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     tmp, dz = (zero(u) for i in 1:2)                             # uType caches
     rtmp, Au, F2, F3, F4, du1 = (zero(rate_prototype) for i in 1:6) # rateType caches
@@ -350,8 +359,9 @@ function alg_cache(
         alg, u, uEltypeNoUnits, uprev, f, t,
         dt, p, du1, tmp, dz, plist
     ) # other caches
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return ETDRK4Cache(
-        u, uprev, tmp, dz, rtmp, Au, F2, F3, F4, du1, jac_config, uf, J, ops,
+        u, uprev, tmp_cache, dz, rtmp, Au, F2, F3, F4, du1, jac_config, uf, J, ops,
         KsCache
     )
 end
@@ -360,7 +370,7 @@ end
     ExpRKCache
     u::uType
     uprev::uType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     dz::uType
     rtmp::rateType
     rtmp2::rateType
@@ -381,7 +391,8 @@ function alg_cache(
         alg::HochOst4, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     tmp, dz = (zero(u) for i in 1:2)                                        # uType caches
     rtmp, rtmp2, Au, F2, F3, F4, F5, du1 = (zero(rate_prototype) for i in 1:8) # rateType caches
@@ -393,8 +404,9 @@ function alg_cache(
         alg, u, uEltypeNoUnits, uprev, f, t,
         dt, p, du1, tmp, dz, plist
     ) # other caches
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return HochOst4Cache(
-        u, uprev, tmp, dz, rtmp, rtmp2, Au, F2, F3, F4, F5, du1, jac_config, uf,
+        u, uprev, tmp_cache, dz, rtmp, rtmp2, Au, F2, F3, F4, F5, du1, jac_config, uf,
         J, ops, KsCache
     )
 end
@@ -447,7 +459,7 @@ end
     ExpRKCache
     u::uType
     uprev::uType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     dz::uType
     rtmp::rateType
     rtmp2::rateType
@@ -463,7 +475,8 @@ function alg_cache(
         alg::Exp4, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits},
         ::Type{tTypeNoUnits}, uprev, uprev2, f, t, dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     tmp, dz = (zero(u) for i in 1:2)                    # uType caches
     rtmp, rtmp2, du1 = (zero(rate_prototype) for i in 1:3) # rateType caches
@@ -489,14 +502,15 @@ function alg_cache(
     # Allocate caches for phiv_timestep
     maxiter = min(alg.m, n)
     KsCache = _phiv_timestep_caches(u, maxiter, 1)
-    return Exp4Cache(u, uprev, tmp, dz, rtmp, rtmp2, du1, jac_config, uf, K, J, B, KsCache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return Exp4Cache(u, uprev, tmp_cache, dz, rtmp, rtmp2, du1, jac_config, uf, K, J, B, KsCache)
 end
 
 @cache struct EPIRK4s3ACache{uType, rateType, JCType, FType, matType, JType, KsType} <:
     ExpRKCache
     u::uType
     uprev::uType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     dz::uType
     rtmp::rateType
     rtmp2::rateType
@@ -512,7 +526,8 @@ function alg_cache(
         alg::EPIRK4s3A, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits},
         ::Type{tTypeNoUnits}, uprev, uprev2, f, t, dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     tmp, dz = (zero(u) for i in 1:2)                    # uType caches
     rtmp, rtmp2, du1 = (zero(rate_prototype) for i in 1:3) # rateType caches
@@ -537,14 +552,15 @@ function alg_cache(
     # Allocate caches for phiv_timestep
     maxiter = min(alg.m, n)
     KsCache = _phiv_timestep_caches(u, maxiter, 4)
-    return EPIRK4s3ACache(u, uprev, tmp, dz, rtmp, rtmp2, du1, jac_config, uf, K, J, B, KsCache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return EPIRK4s3ACache(u, uprev, tmp_cache, dz, rtmp, rtmp2, du1, jac_config, uf, K, J, B, KsCache)
 end
 
 @cache struct EPIRK4s3BCache{uType, rateType, JCType, FType, matType, JType, KsType} <:
     ExpRKCache
     u::uType
     uprev::uType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     dz::uType
     rtmp::rateType
     rtmp2::rateType
@@ -560,7 +576,8 @@ function alg_cache(
         alg::EPIRK4s3B, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits},
         ::Type{tTypeNoUnits}, uprev, uprev2, f, t, dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     tmp, dz = (zero(u) for i in 1:2)                    # uType caches
     rtmp, rtmp2, du1 = (zero(rate_prototype) for i in 1:3) # rateType caches
@@ -585,14 +602,15 @@ function alg_cache(
     # Allocate caches for phiv_timestep
     maxiter = min(alg.m, n)
     KsCache = _phiv_timestep_caches(u, maxiter, 4)
-    return EPIRK4s3BCache(u, uprev, tmp, dz, rtmp, rtmp2, du1, jac_config, uf, K, J, B, KsCache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return EPIRK4s3BCache(u, uprev, tmp_cache, dz, rtmp, rtmp2, du1, jac_config, uf, K, J, B, KsCache)
 end
 
 @cache struct EPIRK5s3Cache{uType, rateType, JCType, FType, matType, JType, KsType} <:
     ExpRKCache
     u::uType
     uprev::uType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     dz::uType
     k::uType
     rtmp::rateType
@@ -608,7 +626,8 @@ function alg_cache(
         alg::EPIRK5s3, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits},
         ::Type{tTypeNoUnits}, uprev, uprev2, f, t, dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     tmp, dz, k = (zero(u) for i in 1:3)                 # uType caches
     rtmp, rtmp2, du1 = (zero(rate_prototype) for i in 1:3) # rateType caches
@@ -632,14 +651,15 @@ function alg_cache(
     # Allocate caches for phiv_timestep
     maxiter = min(alg.m, n)
     KsCache = _phiv_timestep_caches(u, maxiter, 4)
-    return EPIRK5s3Cache(u, uprev, tmp, dz, k, rtmp, rtmp2, du1, jac_config, uf, J, B, KsCache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return EPIRK5s3Cache(u, uprev, tmp_cache, dz, k, rtmp, rtmp2, du1, jac_config, uf, J, B, KsCache)
 end
 
 @cache struct EXPRB53s3Cache{uType, rateType, JCType, FType, matType, JType, KsType} <:
     ExpRKCache
     u::uType
     uprev::uType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     dz::uType
     rtmp::rateType
     rtmp2::rateType
@@ -655,7 +675,8 @@ function alg_cache(
         alg::EXPRB53s3, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits},
         ::Type{tTypeNoUnits}, uprev, uprev2, f, t, dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     tmp, dz = (zero(u) for i in 1:2)                    # uType caches
     rtmp, rtmp2, du1 = (zero(rate_prototype) for i in 1:3) # rateType caches
@@ -680,14 +701,15 @@ function alg_cache(
     # Allocate caches for phiv_timestep
     maxiter = min(alg.m, n)
     KsCache = _phiv_timestep_caches(u, maxiter, 4)
-    return EXPRB53s3Cache(u, uprev, tmp, dz, rtmp, rtmp2, du1, jac_config, uf, K, J, B, KsCache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return EXPRB53s3Cache(u, uprev, tmp_cache, dz, rtmp, rtmp2, du1, jac_config, uf, K, J, B, KsCache)
 end
 
 @cache struct EPIRK5P1Cache{uType, rateType, JCType, FType, matType, JType, KsType} <:
     ExpRKCache
     u::uType
     uprev::uType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     dz::uType
     rtmp::rateType
     rtmp2::rateType
@@ -703,7 +725,8 @@ function alg_cache(
         alg::EPIRK5P1, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits},
         ::Type{tTypeNoUnits}, uprev, uprev2, f, t, dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     tmp, dz = (zero(u) for i in 1:2)                    # uType caches
     rtmp, rtmp2, du1 = (zero(rate_prototype) for i in 1:3) # rateType caches
@@ -728,14 +751,15 @@ function alg_cache(
     # Allocate caches for phiv_timestep
     maxiter = min(alg.m, n)
     KsCache = _phiv_timestep_caches(u, maxiter, 3)
-    return EPIRK5P1Cache(u, uprev, tmp, dz, rtmp, rtmp2, du1, jac_config, uf, K, J, B, KsCache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return EPIRK5P1Cache(u, uprev, tmp_cache, dz, rtmp, rtmp2, du1, jac_config, uf, K, J, B, KsCache)
 end
 
 @cache struct EPIRK5P2Cache{uType, rateType, JCType, FType, matType, JType, KsType} <:
     ExpRKCache
     u::uType
     uprev::uType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     dz::uType
     rtmp::rateType
     rtmp2::rateType
@@ -752,7 +776,8 @@ function alg_cache(
         alg::EPIRK5P2, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits},
         ::Type{tTypeNoUnits}, uprev, uprev2, f, t, dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     tmp, dz = (zero(u) for i in 1:2)                        # uType caches
     rtmp, rtmp2, dR, du1 = (zero(rate_prototype) for i in 1:4) # rateType caches
@@ -777,7 +802,8 @@ function alg_cache(
     # Allocate caches for phiv_timestep
     maxiter = min(alg.m, n)
     KsCache = _phiv_timestep_caches(u, maxiter, 3)
-    return EPIRK5P2Cache(u, uprev, tmp, dz, rtmp, rtmp2, dR, du1, jac_config, uf, K, J, B, KsCache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return EPIRK5P2Cache(u, uprev, tmp_cache, dz, rtmp, rtmp2, dR, du1, jac_config, uf, K, J, B, KsCache)
 end
 
 ####################################
@@ -854,8 +880,7 @@ end
 @cache struct Exprb32Cache{uType, rateType, JCType, FType, JType, KsType} <: ExpRKCache
     u::uType
     uprev::uType
-    utilde::uType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     dz::uType
     rtmp::rateType
     F2::rateType
@@ -869,7 +894,8 @@ function alg_cache(
         alg::Exprb32, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     utilde, tmp, dz = (zero(u) for i in 1:3)         # uType caches
     rtmp, F2, du1 = (zero(rate_prototype) for i in 1:3) # rateType caches
@@ -880,14 +906,16 @@ function alg_cache(
         alg, u, uEltypeNoUnits, uprev, f, t, p,
         du1, tmp, dz, plist
     ) # other caches
-    return Exprb32Cache(u, uprev, utilde, tmp, dz, rtmp, F2, du1, jac_config, uf, J, KsCache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, need_tmp2 = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return Exprb32Cache(u, uprev, tmp_cache, dz, rtmp, F2, du1, jac_config, uf, J, KsCache)
 end
 
 struct Exprb43Cache{uType, rateType, JCType, FType, JType, KsType} <: ExpRKCache
     u::uType
     uprev::uType
-    utilde::uType
-    tmp::uType
+    # `utilde` and `tmp` consolidated into the shared scratch struct
+    # (tmp_cache.tmp2 / tmp_cache.tmp respectively).
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     dz::uType
     rtmp::rateType
     Au::rateType
@@ -905,17 +933,18 @@ function alg_cache(
         dt, reltol, p, calck,
         ::Val{true}, verbose
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    utilde, tmp, dz = (zero(u) for i in 1:3)                 # uType caches
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing)
+    dz = zero(u)
     rtmp, Au, F2, F3, du1 = (zero(rate_prototype) for i in 1:5) # rateType caches
     plist = (1, 4, 4, 4)
     uf, jac_config,
         J,
         KsCache = alg_cache_exprb(
         alg, u, uEltypeNoUnits, uprev, f, t, p,
-        du1, tmp, dz, plist
+        du1, tmp_cache.tmp, dz, plist
     ) # other caches
     return Exprb43Cache(
-        u, uprev, utilde, tmp, dz, rtmp, Au, F2, F3, du1, jac_config, uf, J,
+        u, uprev, tmp_cache, dz, rtmp, Au, F2, F3, du1, jac_config, uf, J,
         KsCache
     )
 end

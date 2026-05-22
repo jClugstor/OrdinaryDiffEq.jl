@@ -33,10 +33,10 @@ end
 
 @muladd function perform_step!(integrator, cache::Rosenbrock23Cache, repeat_step = false)
     (; t, dt, uprev, u, f, p, opts) = integrator
-    (;
-        k₁, k₂, k₃, du1, du2, f₁, fsalfirst, fsallast, dT, J, W, tmp, uf, tf,
-        linsolve_tmp, jac_config, atmp, weight, stage_limiter!, step_limiter!,
-    ) = cache
+    (; k₁, k₂, k₃, du1, du2, f₁, fsalfirst, fsallast, dT, J, W, uf, tf, jac_config, weight, stage_limiter!, step_limiter!) = cache
+    tmp = cache.tmp_cache.tmp
+    linsolve_tmp = cache.tmp_cache.rate_tmp
+    atmp = cache.tmp_cache.atmp
     (; c₃₂, d) = cache.tab
 
     # Assignments
@@ -148,10 +148,10 @@ end
 
 @muladd function perform_step!(integrator, cache::Rosenbrock32Cache, repeat_step = false)
     (; t, dt, uprev, u, f, p, opts) = integrator
-    (;
-        k₁, k₂, k₃, du1, du2, f₁, fsalfirst, fsallast, dT, J, W, tmp, uf, tf,
-        linsolve_tmp, jac_config, atmp, weight, stage_limiter!, step_limiter!,
-    ) = cache
+    (; k₁, k₂, k₃, du1, du2, f₁, fsalfirst, fsallast, dT, J, W, uf, tf, jac_config, weight, stage_limiter!, step_limiter!) = cache
+    tmp = cache.tmp_cache.tmp
+    linsolve_tmp = cache.tmp_cache.rate_tmp
+    atmp = cache.tmp_cache.atmp
     (; c₃₂, d) = cache.tab
 
     # Assignments
@@ -573,10 +573,9 @@ end
 
 @muladd function perform_step!(integrator, cache::RosenbrockCache, repeat_step = false)
     (; t, dt, uprev, u, f, p) = integrator
-    (;
-        du, du1, du2, dT, dtC, dtd, J, W, uf, tf, ks, linsolve_tmp,
-        jac_config, atmp, weight, stage_limiter!, step_limiter!,
-    ) = cache
+    (; du, du1, du2, dT, dtC, dtd, J, W, uf, tf, ks, jac_config, weight, stage_limiter!, step_limiter!) = cache
+    linsolve_tmp = cache.tmp_cache.rate_tmp
+    atmp = cache.tmp_cache.atmp
     (; A, C, gamma, c, d, H) = cache.tab
 
     # Assignments
@@ -881,11 +880,9 @@ end
 
 @muladd function perform_step!(integrator, cache::HybridExplicitImplicitCache, repeat_step = false)
     (; t, dt, uprev, u, f, p) = integrator
-    (;
-        du, du1, du2, dT, J, W, uf, tf, ks, linsolve_tmp, jac_config, atmp, weight,
-        stage_limiter!, step_limiter!, diff_vars, alg_vars,
-        g_z, g_y, linsolve_tmp_z,
-    ) = cache
+    (; du, du1, du2, dT, J, W, uf, tf, ks, jac_config, weight, stage_limiter!, step_limiter!, diff_vars, alg_vars, g_z, g_y, linsolve_tmp_z) = cache
+    linsolve_tmp = cache.tmp_cache.rate_tmp
+    atmp = cache.tmp_cache.atmp
     W_z = cache.W_z
     (; A, C, gamma, b, bhat, c, d, H) = cache.tab
 

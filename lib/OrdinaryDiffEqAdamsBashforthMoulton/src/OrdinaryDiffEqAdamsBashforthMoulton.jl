@@ -10,7 +10,8 @@ import OrdinaryDiffEqCore: OrdinaryDiffEqMutableCache, OrdinaryDiffEqConstantCac
     trivial_limiter!, get_fsalfirstlast,
     generic_solver_docstring,
     full_cache,
-    _ad_chunksize_int, _ad_fdtype, _fixup_ad, @SciMLMessage
+    _ad_chunksize_int, _ad_fdtype, _fixup_ad, @SciMLMessage,
+    TmpCache, build_tmp_cache
 import OrdinaryDiffEqLowOrderRK: BS3ConstantCache, BS3Cache, RK4ConstantCache, RK4Cache
 import RecursiveArrayTools: recursivefill!
 using MuladdMacro, FastBroadcast

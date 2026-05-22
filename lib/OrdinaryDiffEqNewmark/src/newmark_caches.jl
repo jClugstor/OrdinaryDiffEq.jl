@@ -7,7 +7,7 @@
     γ::parameterType # newmark parameter 2
     nlcache::N # Inner solver
     tmp::uType # temporary, because it is required.
-    atmp::uType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     thread::Thread
 end
 
@@ -15,7 +15,8 @@ function alg_cache(
         alg::NewmarkBeta, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     (; β, γ, thread) = alg
     fsalfirst = zero(rate_prototype)
@@ -38,7 +39,8 @@ function alg_cache(
 
     tmp = zero(u)
     atmp = zero(u)
-    return NewmarkBetaCache(u, uprev, fsalfirst, β, γ, nlcache, tmp, atmp, thread)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return NewmarkBetaCache(u, uprev, fsalfirst, β, γ, nlcache, tmp, tmp_cache, thread)
 end
 
 @cache struct NewmarkBetaConstantCache{uType, rateType, parameterType, N, Thread} <:
@@ -50,7 +52,7 @@ end
     γ::parameterType # newmark parameter 2
     nlsolver::N
     tmp::uType # temporary, because it is required.
-    atmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     thread::Thread
 end
 
@@ -89,8 +91,7 @@ end
     β::parameterType # newmark parameter 1
     γ::parameterType # newmark parameter 2
     nlcache::N
-    tmp::uType
-    atmp::uType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     thread::Thread
 end
 
@@ -98,7 +99,8 @@ function alg_cache(
         alg::GeneralizedAlpha, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     (; αm, αf, β, γ, thread) = alg
     fsalfirst = zero(rate_prototype)
@@ -118,9 +120,9 @@ function alg_cache(
     prob = NonlinearProblem{true}(discretized_residual!, aₙ₊₁, evalcache)
     nlcache = init(prob, alg.nlsolve)
 
-    tmp = zero(u)
     atmp = zero(u)
-    return GeneralizedAlphaCache(u, uprev, fsalfirst, αm, αf, β, γ, nlcache, tmp, atmp, thread)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return GeneralizedAlphaCache(u, uprev, fsalfirst, αm, αf, β, γ, nlcache, tmp_cache, thread)
 end
 
 @cache struct GeneralizedAlphaConstantCache{uType, rateType, parameterType, N, Thread} <:
@@ -133,8 +135,7 @@ end
     β::parameterType
     γ::parameterType
     nlsolver::N
-    tmp::uType
-    atmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     thread::Thread
 end
 

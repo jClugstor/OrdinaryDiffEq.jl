@@ -118,7 +118,7 @@ end
 # provide the mutable uninitialized objects to keep state and derivative in case of mutable caches
 # no such objects are required for constant caches
 function alloc_symp_state(integrator)
-    return (integrator.u.x..., integrator.cache.tmp.x...)
+    return (integrator.u.x..., integrator.cache.tmp_cache.tmp.x...)
 end
 
 # load state and derivatives at begin of symplectic iteration steps

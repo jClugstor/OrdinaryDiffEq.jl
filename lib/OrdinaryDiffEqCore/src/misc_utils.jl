@@ -18,6 +18,17 @@ macro cache(expr)
         elseif x.args[2] == :DiffCacheType
             push!(cache_vars, :(c.$(x.args[1]).du))
             push!(cache_vars, :(c.$(x.args[1]).dual_du))
+        elseif x.args[2] == :TmpCacheType ||
+                (x.args[2] isa Expr && x.args[2].head == :curly &&
+                    x.args[2].args[1] == :TmpCache)
+            # field::TmpCache{...}: expand into its five sub-buffers.
+            # Sub-fields may be `nothing` when opted out; full_cache consumers
+            # already filter `nothing` values.
+            push!(cache_vars, :(c.$(x.args[1]).tmp))
+            push!(cache_vars, :(c.$(x.args[1]).tmp2))
+            push!(cache_vars, :(c.$(x.args[1]).atmp))
+            push!(cache_vars, :(c.$(x.args[1]).rate_tmp))
+            push!(cache_vars, :(c.$(x.args[1]).rate_tmp2))
         end
     end
     return quote

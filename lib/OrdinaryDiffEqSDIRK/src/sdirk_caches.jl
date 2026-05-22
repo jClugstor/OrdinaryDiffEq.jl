@@ -12,7 +12,7 @@ end
     uprev::uType
     uprev2::uType
     fsalfirst::rateType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     nlsolver::N
     algebraic_vars::AV
     step_limiter!::StepLimiter
@@ -22,7 +22,8 @@ function alg_cache(
         alg::ImplicitEuler, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits},
         ::Type{tTypeNoUnits}, uprev, uprev2, f, t, dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     γ, c = 1, 1
     nlsolver = build_nlsolver(
@@ -31,14 +32,13 @@ function alg_cache(
     )
     fsalfirst = zero(rate_prototype)
 
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
 
     algebraic_vars = f.mass_matrix === I ? nothing :
         [all(iszero, x) for x in eachcol(f.mass_matrix)]
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
 
     return ImplicitEulerCache(
-        u, uprev, uprev2, fsalfirst, atmp, nlsolver, algebraic_vars, alg.step_limiter!
+        u, uprev, uprev2, fsalfirst, tmp_cache, nlsolver, algebraic_vars, alg.step_limiter!
     )
 end
 
@@ -92,7 +92,7 @@ end
     uprev::uType
     uprev2::uType
     fsalfirst::rateType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     uprev3::uType
     tprev2::tType
     nlsolver::N
@@ -103,7 +103,8 @@ function alg_cache(
         alg::Trapezoid, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits},
         ::Type{tTypeNoUnits}, uprev, uprev2, f, t, dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     γ, c = 1 // 2, 1
     nlsolver = build_nlsolver(
@@ -114,11 +115,10 @@ function alg_cache(
 
     uprev3 = zero(u)
     tprev2 = t
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
 
     return TrapezoidCache(
-        u, uprev, uprev2, fsalfirst, atmp, uprev3, tprev2, nlsolver, alg.step_limiter!
+        u, uprev, uprev2, fsalfirst, tmp_cache, uprev3, tprev2, nlsolver, alg.step_limiter!
     )
 end
 
@@ -150,14 +150,15 @@ mutable struct ESDIRKIMEXCache{uType, rateType, uNoUnitsType, N, Tab, kType, Ste
     fsalfirst::rateType
     zs::Vector{uType}
     ks::Vector{kType}
-    atmp::uNoUnitsType
+    # `atmp` (the error-norm scratch) lives inside `tmp_cache` now.
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     nlsolver::N
     tab::Tab
     step_limiter!::StepLimiter
 end
 
 function full_cache(c::ESDIRKIMEXCache)
-    base = (c.u, c.uprev, c.fsalfirst, c.zs..., c.atmp)
+    base = (c.u, c.uprev, c.fsalfirst, c.zs..., c.tmp_cache.atmp)
     if eltype(c.ks) !== Nothing
         return tuple(base..., c.ks...)
     end
@@ -214,11 +215,10 @@ function alg_cache(
 
     zs = [zero(u) for _ in 1:(s - 1)]
     push!(zs, nlsolver.z)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits)
 
     return ESDIRKIMEXCache(
-        u, uprev, fsalfirst, zs, ks, atmp, nlsolver, tab, alg.step_limiter!
+        u, uprev, fsalfirst, zs, ks, tmp_cache, nlsolver, tab, alg.step_limiter!
     )
 end
 

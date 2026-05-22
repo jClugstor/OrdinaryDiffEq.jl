@@ -9,7 +9,7 @@ get_fsalfirstlast(cache::LowStorageRKMutableCache, u) = (cache.fsalfirst, cache.
     u::uType
     uprev::uType
     k::rateType
-    tmp::uType # tmp acts as second register and fsal both
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     tab::TabType
     williamson_condition::Bool
     stage_limiter!::StageLimiter
@@ -99,14 +99,15 @@ function alg_cache(
         alg::RK46NL, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    tmp = zero(u)
     k = zero(rate_prototype)
     fsalfirst = zero(rate_prototype)
     tab = RK46NLConstantCache(constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits))
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return RK46NLCache(
-        u, uprev, k, tmp, fsalfirst, tab, alg.stage_limiter!, alg.step_limiter!,
+        u, uprev, k, tmp_cache, fsalfirst, tab, alg.stage_limiter!, alg.step_limiter!,
         alg.thread
     )
 end
@@ -116,7 +117,7 @@ end
     u::uType
     uprev::uType
     k::rateType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     fsalfirst::rateType
     tab::TabType
     stage_limiter!::StageLimiter
@@ -154,7 +155,7 @@ end
     u::uType
     uprev::uType
     k::rateType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     fsalfirst::rateType
     tab::TabType
     step::Int
@@ -251,7 +252,7 @@ function alg_cache(
         dt, reltol, p, calck,
         ::Val{true}, verbose
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    tmp = zero(u)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing)
     k = zero(rate_prototype)
     fsalfirst = zero(rate_prototype)
     tab = SHLDDRK_2NConstantCache(
@@ -259,7 +260,7 @@ function alg_cache(
         constvalue(tTypeNoUnits)
     )
     return SHLDDRK_2NCache(
-        u, uprev, k, tmp, fsalfirst, tab, 1, alg.stage_limiter!,
+        u, uprev, k, tmp_cache, fsalfirst, tab, 1, alg.stage_limiter!,
         alg.step_limiter!, alg.thread
     )
 end
@@ -269,7 +270,7 @@ end
     u::uType
     uprev::uType
     k::rateType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     fsalfirst::rateType
     tab::TabType
     stage_limiter!::StageLimiter
@@ -323,14 +324,15 @@ function alg_cache(
         alg::SHLDDRK52, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    tmp = zero(u)
     k = zero(rate_prototype)
     fsalfirst = zero(rate_prototype)
     tab = SHLDDRK52ConstantCache(constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits))
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return SHLDDRK52Cache(
-        u, uprev, k, tmp, fsalfirst, tab, alg.stage_limiter!, alg.step_limiter!,
+        u, uprev, k, tmp_cache, fsalfirst, tab, alg.stage_limiter!, alg.step_limiter!,
         alg.thread
     )
 end
@@ -604,7 +606,7 @@ end
     u::uType
     uprev::uType
     k::rateType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     fsalfirst::rateType
     tab::TabType
     stage_limiter!::StageLimiter
@@ -682,7 +684,7 @@ end
     u::uType
     uprev::uType
     k::rateType
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     fsalfirst::rateType
     tab::TabType
     stage_limiter!::StageLimiter
@@ -1397,9 +1399,7 @@ end
     uprev::uType
     fsalfirst::rateType
     k::rateType
-    utilde::uType
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     tab::TabType
     stage_limiter!::StageLimiter
     step_limiter!::StepLimiter
@@ -1793,9 +1793,7 @@ end
     uprev::uType
     fsalfirst::rateType
     k::rateType
-    utilde::uType
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     tab::TabType
     stage_limiter!::StageLimiter
     step_limiter!::StepLimiter
@@ -2190,8 +2188,7 @@ end
     k::rateType
     gprev::uType
     fsalfirst::rateType
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     tab::TabType
     stage_limiter!::StageLimiter
     step_limiter!::StepLimiter
@@ -2516,8 +2513,7 @@ end
     fᵢ₋₂::rateType
     gprev::uType
     fsalfirst::rateType
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     tab::TabType
     stage_limiter!::StageLimiter
     step_limiter!::StepLimiter
@@ -2916,8 +2912,7 @@ end
     fᵢ₋₃::rateType
     gprev::uType
     fsalfirst::rateType
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     tab::TabType
     stage_limiter!::StageLimiter
     step_limiter!::StepLimiter
@@ -3198,8 +3193,7 @@ end
     fᵢ₋₄::rateType
     gprev::uType
     fsalfirst::rateType
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     tab::TabType
     stage_limiter!::StageLimiter
     step_limiter!::StepLimiter
@@ -3325,7 +3319,7 @@ function alg_cache(
         ::Val{true}, verbose
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     tab = _lowstorage_2n_tableau(alg, constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits))
-    tmp = zero(u)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing)
     williamson_condition = alg.williamson_condition
     if calck
         k = zero(rate_prototype)
@@ -3338,7 +3332,7 @@ function alg_cache(
         end
     end
     return LowStorageRK2NCache(
-        u, uprev, k, tmp, tab, williamson_condition, alg.stage_limiter!,
+        u, uprev, k, tmp_cache, tab, williamson_condition, alg.stage_limiter!,
         alg.step_limiter!, alg.thread
     )
 end
@@ -3362,9 +3356,9 @@ function alg_cache(
         alg::LowStorageRK2CAlgorithm, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    tmp = zero(u)
     k = zero(rate_prototype)
     if calck
         fsalfirst = zero(rate_prototype)
@@ -3372,8 +3366,9 @@ function alg_cache(
         fsalfirst = k
     end
     tab = _lowstorage_2c_tableau(alg, constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits))
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return LowStorageRK2CCache(
-        u, uprev, k, tmp, fsalfirst, tab, alg.stage_limiter!,
+        u, uprev, k, tmp_cache, fsalfirst, tab, alg.stage_limiter!,
         alg.step_limiter!, alg.thread
     )
 end
@@ -3408,9 +3403,9 @@ function alg_cache(
         alg::LowStorageRK3SAlgorithm, u, rate_prototype,
         ::Type{uEltypeNoUnits}, ::Type{uBottomEltypeNoUnits},
         ::Type{tTypeNoUnits}, uprev, uprev2, f, t, dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    tmp = zero(u)
     k = zero(rate_prototype)
     if calck
         fsalfirst = zero(rate_prototype)
@@ -3418,8 +3413,9 @@ function alg_cache(
         fsalfirst = k
     end
     tab = _lowstorage_3s_tableau(alg, constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits))
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return LowStorageRK3SCache(
-        u, uprev, k, tmp, fsalfirst, tab, alg.stage_limiter!,
+        u, uprev, k, tmp_cache, fsalfirst, tab, alg.stage_limiter!,
         alg.step_limiter!, alg.thread
     )
 end
@@ -3444,7 +3440,8 @@ function alg_cache(
         alg::LowStorageRK3SpAlgorithm, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     k = zero(rate_prototype)
     if calck
@@ -3452,17 +3449,14 @@ function alg_cache(
     else
         fsalfirst = k
     end
-    utilde = zero(u)
-    tmp = zero(u)
     if eltype(u) === uEltypeNoUnits
         atmp = utilde # alias the vectors to save memory
     else
-        atmp = similar(u, uEltypeNoUnits)
-        recursivefill!(atmp, false)
     end
     tab = _lowstorage_3sp_tableau(alg, constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits))
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_tmp2 = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return LowStorageRK3SpCache(
-        u, uprev, fsalfirst, k, utilde, tmp, atmp, tab, alg.stage_limiter!,
+        u, uprev, fsalfirst, k, tmp_cache, tab, alg.stage_limiter!,
         alg.step_limiter!, alg.thread
     )
 end
@@ -3487,7 +3481,8 @@ function alg_cache(
         alg::LowStorageRK3SpFSALAlgorithm, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     k = zero(rate_prototype)
     if calck
@@ -3495,17 +3490,14 @@ function alg_cache(
     else
         fsalfirst = k
     end
-    utilde = zero(u)
-    tmp = zero(u)
     if eltype(u) === uEltypeNoUnits
         atmp = utilde # alias the vectors to save memory
     else
-        atmp = similar(u, uEltypeNoUnits)
-        recursivefill!(atmp, false)
     end
     tab = _lowstorage_3spfsal_tableau(alg, constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits))
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_tmp2 = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return LowStorageRK3SpFSALCache(
-        u, uprev, fsalfirst, k, utilde, tmp, atmp, tab,
+        u, uprev, fsalfirst, k, tmp_cache, tab,
         alg.stage_limiter!, alg.step_limiter!, alg.thread
     )
 end
@@ -3534,11 +3526,9 @@ function alg_cache(
         alg::LowStorageRK2RPAlgorithm, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    tmp = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
     k = zero(rate_prototype)
     gprev = zero(u)
     if calck
@@ -3547,8 +3537,9 @@ function alg_cache(
         fsalfirst = k
     end
     tab = _lowstorage_2rp_tableau(alg, constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits))
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return LowStorageRK2RPCache(
-        u, uprev, k, gprev, fsalfirst, tmp, atmp, tab, alg.stage_limiter!,
+        u, uprev, k, gprev, fsalfirst, tmp_cache, tab, alg.stage_limiter!,
         alg.step_limiter!, alg.thread
     )
 end
@@ -3579,11 +3570,9 @@ function alg_cache(
         alg::LowStorageRK3RPAlgorithm, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    tmp = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
     k = zero(rate_prototype)
     uᵢ₋₁ = zero(u)
     uᵢ₋₂ = zero(u)
@@ -3595,8 +3584,9 @@ function alg_cache(
         fsalfirst = k
     end
     tab = _lowstorage_3rp_tableau(alg, constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits))
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return LowStorageRK3RPCache(
-        u, uprev, k, uᵢ₋₁, uᵢ₋₂, fᵢ₋₂, gprev, fsalfirst, tmp, atmp, tab,
+        u, uprev, k, uᵢ₋₁, uᵢ₋₂, fᵢ₋₂, gprev, fsalfirst, tmp_cache, tab,
         alg.stage_limiter!, alg.step_limiter!, alg.thread
     )
 end
@@ -3624,11 +3614,9 @@ function alg_cache(
         alg::LowStorageRK4RPAlgorithm, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    tmp = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
     k = zero(rate_prototype)
     uᵢ₋₁ = zero(u)
     uᵢ₋₂ = zero(u)
@@ -3642,9 +3630,9 @@ function alg_cache(
         fsalfirst = k
     end
     tab = _lowstorage_4rp_tableau(alg, constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits))
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return LowStorageRK4RPCache(
-        u, uprev, k, uᵢ₋₁, uᵢ₋₂, uᵢ₋₃, fᵢ₋₂, fᵢ₋₃, gprev, fsalfirst, tmp,
-        atmp, tab, alg.stage_limiter!, alg.step_limiter!, alg.thread
+        u, uprev, k, uᵢ₋₁, uᵢ₋₂, uᵢ₋₃, fᵢ₋₂, fᵢ₋₃, gprev, fsalfirst, tmp_cache, tab, alg.stage_limiter!, alg.step_limiter!, alg.thread
     )
 end
 
@@ -3666,11 +3654,9 @@ function alg_cache(
         alg::LowStorageRK5RPAlgorithm, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    tmp = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
     k = zero(rate_prototype)
     uᵢ₋₁ = zero(u)
     uᵢ₋₂ = zero(u)
@@ -3686,9 +3672,10 @@ function alg_cache(
         fsalfirst = k
     end
     tab = _lowstorage_5rp_tableau(alg, constvalue(uBottomEltypeNoUnits), constvalue(tTypeNoUnits))
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
     return LowStorageRK5RPCache(
         u, uprev, k, uᵢ₋₁, uᵢ₋₂, uᵢ₋₃, uᵢ₋₄, fᵢ₋₂, fᵢ₋₃, fᵢ₋₄, gprev,
-        fsalfirst, tmp, atmp, tab, alg.stage_limiter!, alg.step_limiter!,
+        fsalfirst, tmp_cache, tab, alg.stage_limiter!, alg.step_limiter!,
         alg.thread
     )
 end

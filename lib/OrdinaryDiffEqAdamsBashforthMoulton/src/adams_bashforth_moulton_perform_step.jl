@@ -76,7 +76,8 @@ end
 
 @muladd function perform_step!(integrator, cache::AB3Cache, repeat_step = false)
     (; t, dt, uprev, u, f, p) = integrator
-    (; tmp, fsalfirst, k2, k3, ralk2, k, thread) = cache
+    (; fsalfirst, k2, k3, ralk2, k, thread) = cache
+    tmp = cache.tmp_cache.tmp
     k1 = integrator.fsalfirst
     if integrator.derivative_discontinuity
         cache.step = 1
@@ -136,7 +137,8 @@ end
 
 @muladd function perform_step!(integrator, cache::ABM32Cache, repeat_step = false)
     (; t, dt, uprev, u, f, p) = integrator
-    (; tmp, fsalfirst, k2, k3, ralk2, k, thread) = cache
+    (; fsalfirst, k2, k3, ralk2, k, thread) = cache
+    tmp = cache.tmp_cache.tmp
     k1 = integrator.fsalfirst
     if integrator.derivative_discontinuity
         cache.step = 1
@@ -210,7 +212,8 @@ end
 
 @muladd function perform_step!(integrator, cache::AB4Cache, repeat_step = false)
     (; t, dt, uprev, u, f, p) = integrator
-    (; tmp, fsalfirst, k2, k3, k4, ralk2, k, t2, t3, t4, thread) = cache
+    (; fsalfirst, k2, k3, k4, ralk2, k, t2, t3, t4, thread) = cache
+    tmp = cache.tmp_cache.tmp
     k1 = integrator.fsalfirst
     if integrator.derivative_discontinuity
         cache.step = 1
@@ -286,7 +289,8 @@ end
 
 @muladd function perform_step!(integrator, cache::ABM43Cache, repeat_step = false)
     (; t, dt, uprev, u, f, p) = integrator
-    (; tmp, fsalfirst, k2, k3, k4, ralk2, k, t2, t3, t4, t5, t6, t7, thread) = cache
+    (; fsalfirst, k2, k3, k4, ralk2, k, t2, t3, t4, t5, t6, t7, thread) = cache
+    tmp = cache.tmp_cache.tmp
     k1 = integrator.fsalfirst
     if integrator.derivative_discontinuity
         cache.step = 1
@@ -373,7 +377,8 @@ end
 
 @muladd function perform_step!(integrator, cache::AB5Cache, repeat_step = false)
     (; t, dt, uprev, u, f, p) = integrator
-    (; tmp, fsalfirst, k2, k3, k4, k5, k, t2, t3, t4, thread) = cache
+    (; fsalfirst, k2, k3, k4, k5, k, t2, t3, t4, thread) = cache
+    tmp = cache.tmp_cache.tmp
     k1 = integrator.fsalfirst
     if integrator.derivative_discontinuity
         cache.step = 1
@@ -458,7 +463,8 @@ end
 
 @muladd function perform_step!(integrator, cache::ABM54Cache, repeat_step = false)
     (; t, dt, uprev, u, f, p) = integrator
-    (; tmp, fsalfirst, k2, k3, k4, k5, k, t2, t3, t4, t5, t6, t7, t8, thread) = cache
+    (; fsalfirst, k2, k3, k4, k5, k, t2, t3, t4, t5, t6, t7, t8, thread) = cache
+    tmp = cache.tmp_cache.tmp
     k1 = integrator.fsalfirst
     if integrator.derivative_discontinuity
         cache.step = 1
@@ -592,7 +598,9 @@ end
 
 @muladd function perform_step!(integrator, cache::VCAB3Cache, repeat_step = false)
     (; t, dt, uprev, u, f, p) = integrator
-    (; k4, dts, g, ϕstar_n, ϕstar_nm1, order, atmp, utilde, bs3cache, thread) = cache
+    (; k4, dts, g, ϕstar_n, ϕstar_nm1, order, bs3cache, thread) = cache
+    atmp = cache.tmp_cache.atmp
+    utilde = cache.tmp_cache.tmp2
     k1 = integrator.fsalfirst
     if integrator.derivative_discontinuity
         cache.step = 1
@@ -729,10 +737,9 @@ end
 
 @muladd function perform_step!(integrator, cache::VCAB4Cache, repeat_step = false)
     (; t, dt, uprev, u, f, p) = integrator
-    (;
-        k4, dts, g, ϕ_n, ϕstar_n, ϕstar_nm1, order, atmp, utilde, rk4cache,
-        thread,
-    ) = cache
+    (; k4, dts, g, ϕ_n, ϕstar_n, ϕstar_nm1, order, rk4cache, thread) = cache
+    atmp = cache.tmp_cache.atmp
+    utilde = cache.tmp_cache.tmp2
     k1 = integrator.fsalfirst
     if integrator.derivative_discontinuity
         cache.step = 1
@@ -884,10 +891,9 @@ end
 
 @muladd function perform_step!(integrator, cache::VCAB5Cache, repeat_step = false)
     (; t, dt, uprev, u, f, p) = integrator
-    (;
-        k4, dts, g, ϕ_n, ϕstar_n, ϕstar_nm1, order, atmp, utilde, rk4cache,
-        thread,
-    ) = cache
+    (; k4, dts, g, ϕ_n, ϕstar_n, ϕstar_nm1, order, rk4cache, thread) = cache
+    atmp = cache.tmp_cache.atmp
+    utilde = cache.tmp_cache.tmp2
     k1 = integrator.fsalfirst
     if integrator.derivative_discontinuity
         cache.step = 1
@@ -1037,10 +1043,9 @@ end
 
 @muladd function perform_step!(integrator, cache::VCABM3Cache, repeat_step = false)
     (; t, dt, uprev, u, f, p) = integrator
-    (;
-        k4, dts, g, ϕstar_n, ϕ_np1, ϕstar_nm1, order, atmp, utilde, bs3cache,
-        thread,
-    ) = cache
+    (; k4, dts, g, ϕstar_n, ϕ_np1, ϕstar_nm1, order, bs3cache, thread) = cache
+    atmp = cache.tmp_cache.atmp
+    utilde = cache.tmp_cache.tmp2
     k1 = integrator.fsalfirst
     if integrator.derivative_discontinuity
         cache.step = 1
@@ -1187,10 +1192,9 @@ end
 
 @muladd function perform_step!(integrator, cache::VCABM4Cache, repeat_step = false)
     (; t, dt, uprev, u, f, p) = integrator
-    (;
-        k4, dts, g, ϕstar_n, ϕ_np1, ϕstar_nm1, order, atmp, utilde, rk4cache,
-        thread,
-    ) = cache
+    (; k4, dts, g, ϕstar_n, ϕ_np1, ϕstar_nm1, order, rk4cache, thread) = cache
+    atmp = cache.tmp_cache.atmp
+    utilde = cache.tmp_cache.tmp2
     k1 = integrator.fsalfirst
     if integrator.derivative_discontinuity
         cache.step = 1
@@ -1351,10 +1355,9 @@ end
 @muladd function perform_step!(integrator, cache::VCABM5Cache, repeat_step = false)
     @inbounds begin
         (; t, dt, uprev, u, f, p) = integrator
-        (;
-            k4, dts, g, ϕ_n, ϕ_np1, ϕstar_n, ϕstar_nm1,
-            order, atmp, utilde, rk4cache, thread,
-        ) = cache
+        (; k4, dts, g, ϕ_n, ϕ_np1, ϕstar_n, ϕstar_nm1, order, rk4cache, thread) = cache
+    atmp = cache.tmp_cache.atmp
+    utilde = cache.tmp_cache.tmp2
         k1 = integrator.fsalfirst
         if integrator.derivative_discontinuity
             cache.step = 1
@@ -1541,10 +1544,9 @@ end
 @muladd function perform_step!(integrator, cache::VCABMCache, repeat_step = false)
     @inbounds begin
         (; t, dt, uprev, u, f, p) = integrator
-        (;
-            k4, dts, g, ϕ_n, ϕ_np1, ϕstar_n, ϕstar_nm1, order, max_order, utilde,
-            utildem2, utildem1, utildep1, atmp, atmpm1, atmpm2, atmpp1, thread,
-        ) = cache
+        (; k4, dts, g, ϕ_n, ϕ_np1, ϕstar_n, ϕstar_nm1, order, max_order, utildem2, utildem1, utildep1, atmpm1, atmpm2, atmpp1, thread) = cache
+    utilde = cache.tmp_cache.tmp2
+    atmp = cache.tmp_cache.atmp
         k1 = integrator.fsalfirst
         step = integrator.iter
         k = order

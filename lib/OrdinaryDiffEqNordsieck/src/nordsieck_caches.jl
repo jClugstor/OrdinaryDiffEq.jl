@@ -40,10 +40,9 @@ mutable struct AN5Cache{uType, dType, rateType, zType, lType, dtsType, tsit5Type
     OrdinaryDiffEqMutableCache
     u::uType
     uprev::uType
-    tmp::uType
+    # `tmp` and `atmp` consolidated into the shared scratch struct.
+    tmp_cache::TmpCache{uType, rateType, dType}
     Δ::dType
-    # Error estimation
-    atmp::dType
     fsalfirst::rateType
     ratetmp::rateType
     # `z` is the Nordsieck vector
@@ -78,17 +77,16 @@ function alg_cache(
     k5 = zero(rate_prototype)
     k6 = zero(rate_prototype)
     k7 = zero(rate_prototype)
-    utilde = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
-    tmp = zero(u)
+    # Build Tsit5's tmp_cache (utilde -> tmp2, tmp -> tmp, atmp -> atmp).
+    tsit5_tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits)
     tsit5cache = Tsit5Cache(
-        u, uprev, k1, k2, k3, k4, k5, k6, k7, utilde, tmp, atmp,
+        u, uprev, k1, k2, k3, k4, k5, k6, k7, tsit5_tmp_cache,
         trivial_limiter!, trivial_limiter!, Serial()
     )
     #################################################
     N = 5
-    Δ = similar(atmp)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits)
+    Δ = similar(tmp_cache.atmp)
     recursivefill!(Δ, false)
     l = fill(zero(tTypeNoUnits), N + 1)
     m = zero(l)
@@ -102,7 +100,7 @@ function alg_cache(
     ratetmp = zero(rate_prototype)
 
     return AN5Cache(
-        u, uprev, tmp, Δ, atmp, fsalfirst, ratetmp,
+        u, uprev, tmp_cache, Δ, fsalfirst, ratetmp,
         z, l, m, c_LTE, c_conv, dts,
         tsit5cache, 1
     )
@@ -182,7 +180,8 @@ mutable struct JVODECache{
     } <: OrdinaryDiffEqMutableCache
     u::uType
     uprev::uType
-    tmp::uType
+    # `tmp` and `atmp` consolidated into the shared scratch struct.
+    tmp_cache::TmpCache{uType, rateType, dType}
     fsalfirst::rateType
     ratetmp::rateType
     # `z` is the Nordsieck vector
@@ -206,8 +205,6 @@ mutable struct JVODECache{
     dts::dtsType
     # `Δ` is the difference between the predictor `uₙ₀` and `uₙ`
     Δ::dType
-    # Error estimation
-    atmp::dType
     # `Tsit5` for the first step
     tsit5cache::tsit5Type
     L::Int
@@ -241,18 +238,16 @@ function alg_cache(
     k5 = zero(rate_prototype)
     k6 = zero(rate_prototype)
     k7 = zero(rate_prototype)
-    utilde = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
-    tmp = zero(u)
+    tsit5_tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits)
     tsit5cache = Tsit5Cache(
-        u, uprev, k1, k2, k3, k4, k5, k6, k7, utilde, tmp, atmp,
+        u, uprev, k1, k2, k3, k4, k5, k6, k7, tsit5_tmp_cache,
         trivial_limiter!, trivial_limiter!, Serial()
     )
     #################################################
     fsalfirst = zero(rate_prototype)
     N = 12
     z = [zero(rate_prototype) for i in 1:(N + 1)]
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits)
     Δ = similar(u, uEltypeNoUnits)
     recursivefill!(Δ, false)
     l = fill(zero(tTypeNoUnits), N + 1)
@@ -278,10 +273,10 @@ function alg_cache(
     ratetmp = zero(rate_prototype)
     #################################################
     return JVODECache(
-        u, uprev, tmp, fsalfirst, ratetmp,
+        u, uprev, tmp_cache, fsalfirst, ratetmp,
         z, l, m,
         c_LTE₊₁, c_LTE, c_LTE₋₁, c_conv, c_𝒟, prev_𝒟,
-        dts, Δ, atmp, tsit5cache, 2, 1, 1, 2, η, η, η, η, η, η
+        dts, Δ, tsit5cache, 2, 1, 1, 2, η, η, η, η, η, η
     )
 end
 

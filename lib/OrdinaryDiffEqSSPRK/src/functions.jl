@@ -7,5 +7,7 @@
         },
         cache::OrdinaryDiffEqMutableCache
     )
-    return (cache.k,)
+    # `k` (rate-typed) stays first to preserve the positional `first(tup)`
+    # contract used by existing callers.
+    return (k = cache.k, tmp_cache = cache.tmp_cache)
 end

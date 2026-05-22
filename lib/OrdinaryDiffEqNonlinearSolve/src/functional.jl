@@ -173,7 +173,8 @@ end
     )
     (; uprev, t, p, dt, opts) = integrator
     (; z, tmp, ztmp, γ, α, cache) = nlsolver
-    (; ustep, tstep, k, atmp, dz) = cache
+    (; ustep, tstep, k, dz) = cache
+    atmp = cache.tmp_cache.atmp
 
     f = nlsolve_f(integrator)
     isdae = f isa DAEFunction

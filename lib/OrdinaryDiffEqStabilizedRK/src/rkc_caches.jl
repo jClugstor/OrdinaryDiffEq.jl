@@ -19,8 +19,7 @@ end
     uprev::uType
     uᵢ₋₁::uType
     uᵢ₋₂::uType
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     fsalfirst::rateType
     k::rateType
     constantcache::C
@@ -30,7 +29,8 @@ function alg_cache(
         alg::ROCK2, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     constantcache = ROCK2ConstantCache(
         constvalue(uBottomEltypeNoUnits),
@@ -39,12 +39,10 @@ function alg_cache(
     )
     uᵢ₋₁ = zero(u)
     uᵢ₋₂ = zero(u)
-    tmp = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
     fsalfirst = zero(rate_prototype)
     k = zero(rate_prototype)
-    return ROCK2Cache(u, uprev, uᵢ₋₁, uᵢ₋₂, tmp, atmp, fsalfirst, k, constantcache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return ROCK2Cache(u, uprev, uᵢ₋₁, uᵢ₋₂, tmp_cache, fsalfirst, k, constantcache)
 end
 
 function alg_cache(
@@ -77,8 +75,7 @@ end
     uᵢ₋₁::uType
     uᵢ₋₂::uType
     uᵢ₋₃::uType
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     fsalfirst::rateType
     k::rateType
     constantcache::C
@@ -88,7 +85,8 @@ function alg_cache(
         alg::ROCK4, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     constantcache = ROCK4ConstantCache(
         constvalue(uBottomEltypeNoUnits),
@@ -98,12 +96,10 @@ function alg_cache(
     uᵢ₋₁ = zero(u)
     uᵢ₋₂ = zero(u)
     uᵢ₋₃ = zero(u)
-    tmp = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
     fsalfirst = zero(rate_prototype)
     k = zero(rate_prototype)
-    return ROCK4Cache(u, uprev, uᵢ₋₁, uᵢ₋₂, uᵢ₋₃, tmp, atmp, fsalfirst, k, constantcache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return ROCK4Cache(u, uprev, uᵢ₋₁, uᵢ₋₂, uᵢ₋₃, tmp_cache, fsalfirst, k, constantcache)
 end
 
 function alg_cache(
@@ -125,8 +121,7 @@ end
     uprev::uType
     gprev::uType
     gprev2::uType
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     fsalfirst::rateType
     k::rateType
     constantcache::C
@@ -136,17 +131,16 @@ function alg_cache(
         alg::RKC, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     constantcache = RKCConstantCache(u)
     gprev = zero(u)
     gprev2 = zero(u)
-    tmp = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
     fsalfirst = zero(rate_prototype)
     k = zero(rate_prototype)
-    return RKCCache(u, uprev, gprev, gprev2, tmp, atmp, fsalfirst, k, constantcache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return RKCCache(u, uprev, gprev, gprev2, tmp_cache, fsalfirst, k, constantcache)
 end
 
 function alg_cache(
@@ -177,8 +171,7 @@ end
     uᵢ₋₁::uType
     uᵢ₋₂::uType
     Sᵢ::uType
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     fsalfirst::rateType
     k::rateType
     constantcache::C
@@ -188,19 +181,18 @@ function alg_cache(
         alg::ESERK4, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     constantcache = ESERK4ConstantCache(u)
     uᵢ = zero(u)
     uᵢ₋₁ = zero(u)
     uᵢ₋₂ = zero(u)
     Sᵢ = zero(u)
-    tmp = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
     fsalfirst = zero(rate_prototype)
     k = zero(rate_prototype)
-    return ESERK4Cache(u, uprev, uᵢ, uᵢ₋₁, uᵢ₋₂, Sᵢ, tmp, atmp, fsalfirst, k, constantcache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return ESERK4Cache(u, uprev, uᵢ, uᵢ₋₁, uᵢ₋₂, Sᵢ, tmp_cache, fsalfirst, k, constantcache)
 end
 
 function alg_cache(
@@ -231,8 +223,7 @@ end
     uᵢ₋₁::uType
     uᵢ₋₂::uType
     Sᵢ::uType
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     fsalfirst::rateType
     k::rateType
     constantcache::C
@@ -242,19 +233,18 @@ function alg_cache(
         alg::ESERK5, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     constantcache = ESERK5ConstantCache(u)
     uᵢ = zero(u)
     uᵢ₋₁ = zero(u)
     uᵢ₋₂ = zero(u)
     Sᵢ = zero(u)
-    tmp = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
     fsalfirst = zero(rate_prototype)
     k = zero(rate_prototype)
-    return ESERK5Cache(u, uprev, uᵢ, uᵢ₋₁, uᵢ₋₂, Sᵢ, tmp, atmp, fsalfirst, k, constantcache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return ESERK5Cache(u, uprev, uᵢ, uᵢ₋₁, uᵢ₋₂, Sᵢ, tmp_cache, fsalfirst, k, constantcache)
 end
 
 function alg_cache(
@@ -282,8 +272,7 @@ end
     uᵢ₋₁::uType
     uᵢ₋₂::uType
     Sᵢ::uType
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     fsalfirst::rateType
     k::rateType
     constantcache::C
@@ -293,18 +282,17 @@ function alg_cache(
         alg::SERK2, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     constantcache = SERK2ConstantCache(u)
     uᵢ₋₁ = zero(u)
     uᵢ₋₂ = zero(u)
     Sᵢ = zero(u)
-    tmp = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
     fsalfirst = zero(rate_prototype)
     k = zero(rate_prototype)
-    return SERK2Cache(u, uprev, uᵢ₋₁, uᵢ₋₂, Sᵢ, tmp, atmp, fsalfirst, k, constantcache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return SERK2Cache(u, uprev, uᵢ₋₁, uᵢ₋₂, Sᵢ, tmp_cache, fsalfirst, k, constantcache)
 end
 
 function alg_cache(
@@ -328,8 +316,7 @@ end
     uprev::uType
     gprev::uType
     gprev2::uType
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     fsalfirst::rateType
     k::rateType
     constantcache::C
@@ -339,19 +326,18 @@ function alg_cache(
         alg::TSRKC3, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     tsw0 = tTypeNoUnits(1.25)
     acoshtsw0 = tTypeNoUnits(acosh(1.25))
     constantcache = TSRKC3ConstantCache(u, tsw0, acoshtsw0)
     gprev = zero(u)
     gprev2 = zero(u)
-    tmp = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
     fsalfirst = zero(rate_prototype)
     k = zero(rate_prototype)
-    return TSRKC3Cache(u, uprev, gprev, gprev2, tmp, atmp, fsalfirst, k, constantcache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return TSRKC3Cache(u, uprev, gprev, gprev2, tmp_cache, fsalfirst, k, constantcache)
 end
 
 function alg_cache(
@@ -382,8 +368,7 @@ end
     uprev::uType
     uᵢ₋₁::uType
     uᵢ₋₂::uType
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     fsalfirst::rateType
     k::rateType
     constantcache::C
@@ -392,18 +377,17 @@ end
 function alg_cache(
         alg::RKL1, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
-        dt, reltol, p, calck, ::Val{true}, verbose
+        dt, reltol, p, calck, ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     min_stage, max_stage = _rkl_clamp_odd_stages(alg.min_stages, alg.max_stages)
     constantcache = RKL1ConstantCache(u, min_stage, max_stage)
     uᵢ₋₁ = zero(u)
     uᵢ₋₂ = zero(u)
-    tmp = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
     fsalfirst = zero(rate_prototype)
     k = zero(rate_prototype)
-    return RKL1Cache(u, uprev, uᵢ₋₁, uᵢ₋₂, tmp, atmp, fsalfirst, k, constantcache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return RKL1Cache(u, uprev, uᵢ₋₁, uᵢ₋₂, tmp_cache, fsalfirst, k, constantcache)
 end
 
 function alg_cache(
@@ -432,8 +416,7 @@ end
     uprev::uType
     uᵢ₋₁::uType
     uᵢ₋₂::uType
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     fsalfirst::rateType
     k::rateType
     constantcache::C
@@ -442,18 +425,17 @@ end
 function alg_cache(
         alg::RKL2, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
-        dt, reltol, p, calck, ::Val{true}, verbose
+        dt, reltol, p, calck, ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     min_stage, max_stage = _rkl_clamp_odd_stages(alg.min_stages, alg.max_stages)
     constantcache = RKL2ConstantCache(u, min_stage, max_stage)
     uᵢ₋₁ = zero(u)
     uᵢ₋₂ = zero(u)
-    tmp = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
     fsalfirst = zero(rate_prototype)
     k = zero(rate_prototype)
-    return RKL2Cache(u, uprev, uᵢ₋₁, uᵢ₋₂, tmp, atmp, fsalfirst, k, constantcache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return RKL2Cache(u, uprev, uᵢ₋₁, uᵢ₋₂, tmp_cache, fsalfirst, k, constantcache)
 end
 
 function alg_cache(
@@ -482,8 +464,7 @@ end
     uprev::uType
     uᵢ₋₁::uType
     uᵢ₋₂::uType
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     fsalfirst::rateType
     k::rateType
     constantcache::C
@@ -492,7 +473,8 @@ end
 function alg_cache(
         alg::RKG1, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
-        dt, reltol, p, calck, ::Val{true}, verbose
+        dt, reltol, p, calck, ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     min_stage = max(2, alg.min_stages)
     max_stage = max(alg.max_stages, min_stage)
@@ -500,7 +482,8 @@ function alg_cache(
     uᵢ₋₁ = zero(u); uᵢ₋₂ = zero(u); tmp = zero(u)
     atmp = similar(u, uEltypeNoUnits); recursivefill!(atmp, false)
     fsalfirst = zero(rate_prototype); k = zero(rate_prototype)
-    return RKG1Cache(u, uprev, uᵢ₋₁, uᵢ₋₂, tmp, atmp, fsalfirst, k, constantcache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return RKG1Cache(u, uprev, uᵢ₋₁, uᵢ₋₂, tmp_cache, fsalfirst, k, constantcache)
 end
 
 function alg_cache(
@@ -530,8 +513,7 @@ end
     uprev::uType
     uᵢ₋₁::uType
     uᵢ₋₂::uType
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     fsalfirst::rateType
     k::rateType
     constantcache::C
@@ -540,7 +522,8 @@ end
 function alg_cache(
         alg::RKG2, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
-        dt, reltol, p, calck, ::Val{true}, verbose
+        dt, reltol, p, calck, ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     min_stage = max(3, alg.min_stages)
     max_stage = max(alg.max_stages, min_stage)
@@ -548,7 +531,8 @@ function alg_cache(
     uᵢ₋₁ = zero(u); uᵢ₋₂ = zero(u); tmp = zero(u)
     atmp = similar(u, uEltypeNoUnits); recursivefill!(atmp, false)
     fsalfirst = zero(rate_prototype); k = zero(rate_prototype)
-    return RKG2Cache(u, uprev, uᵢ₋₁, uᵢ₋₂, tmp, atmp, fsalfirst, k, constantcache)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return RKG2Cache(u, uprev, uᵢ₋₁, uᵢ₋₂, tmp_cache, fsalfirst, k, constantcache)
 end
 
 function alg_cache(

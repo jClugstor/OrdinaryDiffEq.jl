@@ -100,13 +100,17 @@ mutable struct RosenbrockCache{
     dT::rateType
     J::JType
     W::WType
+    # `tmp::rateType` is a rate-typed scratch reserved for the jac_config
+    # setup and as the `u0` buffer of the linear-solve at cache construction.
+    # It's distinct from `tmp_cache.rate_tmp` (the linsolve RHS), and must
+    # not be aliased to a tmp_cache slot because both buffers are live
+    # simultaneously during cache construction.
     tmp::rateType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     weight::uNoUnitsType
     tab::TabType
     tf::TFType
     uf::UFType
-    linsolve_tmp::rateType
     linsolve::F
     jac_config::JCType
     grad_config::GCType
@@ -120,7 +124,8 @@ end
 function full_cache(c::RosenbrockCache)
     return [
         c.u, c.uprev, c.dense..., c.du, c.du1, c.du2,
-        c.ks..., c.fsalfirst, c.fsallast, c.dT, c.tmp, c.atmp, c.weight, c.linsolve_tmp,
+        c.ks..., c.fsalfirst, c.fsallast, c.dT, c.tmp,
+        c.tmp_cache.atmp, c.weight, c.tmp_cache.rate_tmp,
     ]
 end
 
@@ -140,7 +145,7 @@ end
 @cache mutable struct Rosenbrock23Cache{
         uType, rateType, uNoUnitsType, JType, WType,
         TabType, TFType, UFType, F, JCType, GCType,
-        RTolType, A, AV, StepLimiter, StageLimiter, JRType,
+        RTolType, A, AV, StepLimiter, uNoUnitsType, StageLimiter, JRType,
     } <: RosenbrockMutableCache
     u::uType
     uprev::uType
@@ -155,13 +160,11 @@ end
     dT::rateType
     J::JType
     W::WType
-    tmp::rateType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     weight::uNoUnitsType
     tab::TabType
     tf::TFType
     uf::UFType
-    linsolve_tmp::rateType
     linsolve::F
     jac_config::JCType
     grad_config::GCType
@@ -176,7 +179,7 @@ end
 @cache mutable struct Rosenbrock32Cache{
         uType, rateType, uNoUnitsType, JType, WType,
         TabType, TFType, UFType, F, JCType, GCType,
-        RTolType, A, AV, StepLimiter, StageLimiter, JRType,
+        RTolType, A, AV, StepLimiter, uNoUnitsType, StageLimiter, JRType,
     } <: RosenbrockMutableCache
     u::uType
     uprev::uType
@@ -191,13 +194,11 @@ end
     dT::rateType
     J::JType
     W::WType
-    tmp::rateType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     weight::uNoUnitsType
     tab::TabType
     tf::TFType
     uf::UFType
-    linsolve_tmp::rateType
     linsolve::F
     jac_config::JCType
     grad_config::GCType
@@ -213,7 +214,8 @@ function alg_cache(
         alg::Rosenbrock23, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     k₁ = zero(rate_prototype)
     k₂ = zero(rate_prototype)
@@ -226,14 +228,11 @@ function alg_cache(
     fsallast = zero(rate_prototype)
     dT = zero(rate_prototype)
     tmp = zero(rate_prototype)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
     weight = similar(u, uEltypeNoUnits)
     recursivefill!(weight, false)
     tab = Rosenbrock23Tableau(constvalue(uBottomEltypeNoUnits))
     tf = TimeGradientWrapper(f, uprev, p)
     uf = UJacobianWrapper(f, t, p)
-    linsolve_tmp = zero(rate_prototype)
 
     grad_config = build_grad_config(alg, f, tf, du1, t)
     jac_config = build_jac_config(alg, f, uf, du1, uprev, u, tmp, du2)
@@ -251,11 +250,11 @@ function alg_cache(
 
     algebraic_vars = f.mass_matrix === I ? nothing :
         [all(iszero, x) for x in eachcol(f.mass_matrix)]
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_atmp = true, need_rate_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
 
     return Rosenbrock23Cache(
         u, uprev, k₁, k₂, k₃, du1, du2, f₁,
-        fsalfirst, fsallast, dT, J, W, tmp, atmp, weight, tab, tf, uf,
-        linsolve_tmp,
+        fsalfirst, fsallast, dT, J, W, tmp_cache, weight, tab, tf, uf,
         linsolve, jac_config, grad_config, reltol, alg, algebraic_vars, alg.step_limiter!,
         alg.stage_limiter!, _make_jac_reuse_state(
             zero(dt), alg.max_jac_age, J, zero(rate_prototype), W
@@ -267,7 +266,8 @@ function alg_cache(
         alg::Rosenbrock32, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     k₁ = zero(rate_prototype)
     k₂ = zero(rate_prototype)
@@ -280,15 +280,12 @@ function alg_cache(
     fsallast = zero(rate_prototype)
     dT = zero(rate_prototype)
     tmp = zero(rate_prototype)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
     weight = similar(u, uEltypeNoUnits)
     recursivefill!(weight, false)
     tab = Rosenbrock32Tableau(constvalue(uBottomEltypeNoUnits))
 
     tf = TimeGradientWrapper(f, uprev, p)
     uf = UJacobianWrapper(f, t, p)
-    linsolve_tmp = zero(rate_prototype)
 
     grad_config = build_grad_config(alg, f, tf, du1, t)
     jac_config = build_jac_config(alg, f, uf, du1, uprev, u, tmp, du2)
@@ -306,10 +303,10 @@ function alg_cache(
 
     algebraic_vars = f.mass_matrix === I ? nothing :
         [all(iszero, x) for x in eachcol(f.mass_matrix)]
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_atmp = true, need_rate_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
 
     return Rosenbrock32Cache(
-        u, uprev, k₁, k₂, k₃, du1, du2, f₁, fsalfirst, fsallast, dT, J, W,
-        tmp, atmp, weight, tab, tf, uf, linsolve_tmp, linsolve, jac_config,
+        u, uprev, k₁, k₂, k₃, du1, du2, f₁, fsalfirst, fsallast, dT, J, W, tmp_cache, weight, tab, tf, uf, linsolve, jac_config,
         grad_config, reltol, alg, algebraic_vars, alg.step_limiter!, alg.stage_limiter!,
         _make_jac_reuse_state(
             zero(dt), alg.max_jac_age, J, zero(rate_prototype), W
@@ -525,8 +522,7 @@ function alg_cache(
 
     # Temporary and helper variables
     tmp = zero(rate_prototype)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits)
     weight = similar(u, uEltypeNoUnits)
     recursivefill!(weight, false)
 
@@ -538,8 +534,10 @@ function alg_cache(
 
     J, W = build_J_W(alg, u, uprev, p, t, dt, f, jac_config, uEltypeNoUnits, Val(true))
 
-    linsolve_tmp = zero(rate_prototype)
-    linprob = LinearProblem(W, _vec(linsolve_tmp), (nothing, u, p, t); u0 = _vec(tmp))
+    # `tmp_cache.rate_tmp` plays the linsolve-RHS role at every perform_step;
+    # we use it here too as the LinearProblem's `b` so the linsolve is wired
+    # to the shared scratch buffer.
+    linprob = LinearProblem(W, _vec(tmp_cache.rate_tmp), (nothing, u, p, t); u0 = _vec(tmp))
 
     linsolve = init(
         linprob, wrapprecs(alg.linsolve, W, weight),
@@ -552,7 +550,7 @@ function alg_cache(
     # Return the cache struct with vectors
     return RosenbrockCache(
         u, uprev, dense, du, du1, du2, dtC, dtd, ks, fsalfirst, fsallast,
-        dT, J, W, tmp, atmp, weight, tab, tf, uf, linsolve_tmp,
+        dT, J, W, tmp, tmp_cache, weight, tab, tf, uf,
         linsolve, jac_config, grad_config, reltol, alg,
         _get_step_limiter(alg), _get_stage_limiter(alg), interp_order,
         _make_jac_reuse_state(
@@ -604,13 +602,15 @@ mutable struct HybridExplicitImplicitCache{
     dT::rateType
     J::JType
     W::WType
+    # `tmp::rateType` is rate-typed scratch reserved for the jac_config and
+    # as the LinearProblem `u0` buffer; it is distinct from
+    # `tmp_cache.rate_tmp` (the linsolve RHS).
     tmp::rateType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     weight::uNoUnitsType
     tab::TabType
     tf::TFType
     uf::UFType
-    linsolve_tmp::rateType
     linsolve::F
     jac_config::JCType
     grad_config::GCType
@@ -630,7 +630,8 @@ end
 function full_cache(c::HybridExplicitImplicitCache)
     return [
         c.u, c.uprev, c.dense..., c.du, c.du1, c.du2,
-        c.ks..., c.fsalfirst, c.fsallast, c.dT, c.tmp, c.atmp, c.weight, c.linsolve_tmp,
+        c.ks..., c.fsalfirst, c.fsallast, c.dT, c.tmp,
+        c.tmp_cache.atmp, c.weight, c.tmp_cache.rate_tmp,
     ]
 end
 
@@ -669,11 +670,9 @@ function alg_cache(
     fsallast = zero(rate_prototype)
     dT = zero(rate_prototype)
     tmp = zero(rate_prototype)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits)
     weight = similar(u, uEltypeNoUnits)
     recursivefill!(weight, false)
-    linsolve_tmp = zero(rate_prototype)
 
     tf = TimeGradientWrapper(f, uprev, p)
     uf = UJacobianWrapper(f, t, p)
@@ -682,7 +681,7 @@ function alg_cache(
     jac_config = build_jac_config(alg, f, uf, du1, uprev, u, tmp, du2)
     J, W = build_J_W(alg, u, uprev, p, t, dt, f, jac_config, uEltypeNoUnits, Val(true))
 
-    linprob = LinearProblem(W, _vec(linsolve_tmp), (nothing, u, p, t); u0 = _vec(tmp))
+    linprob = LinearProblem(W, _vec(tmp_cache.rate_tmp), (nothing, u, p, t); u0 = _vec(tmp))
     linsolve = init(
         linprob, wrapprecs(alg.linsolve, W, weight),
         alias = LinearAliasSpecifier(alias_A = true, alias_b = true),
@@ -710,8 +709,8 @@ function alg_cache(
 
     return HybridExplicitImplicitCache(
         u, uprev, dense, du, du1, du2, ks,
-        fsalfirst, fsallast, dT, J, W, tmp, atmp, weight, tab, tf, uf,
-        linsolve_tmp, linsolve, jac_config, grad_config, reltol, alg,
+        fsalfirst, fsallast, dT, J, W, tmp, tmp_cache, weight, tab, tf, uf,
+        linsolve, jac_config, grad_config, reltol, alg,
         alg.step_limiter!, alg.stage_limiter!, interp_order,
         diff_vars, alg_vars, g_z, g_y, W_z, linsolve_tmp_z
     )

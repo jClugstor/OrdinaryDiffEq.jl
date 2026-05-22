@@ -5,8 +5,7 @@ end
 @cache mutable struct MREEFCache{uType, rateType, uNoUnitsType} <: OrdinaryDiffEqMutableCache
     u::uType
     uprev::uType
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     k_slow::rateType
     k_fast::rateType
     T::Array{uType, 1}
@@ -20,17 +19,16 @@ function alg_cache(
         alg::MREEF, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    tmp = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
     k_slow = zero(rate_prototype)
     k_fast = zero(rate_prototype)
     T = [zero(u) for _ in 1:(alg.order)]
     fsalfirst = zero(rate_prototype)
     k = zero(rate_prototype)
-    return MREEFCache(u, uprev, tmp, atmp, k_slow, k_fast, T, fsalfirst, k)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return MREEFCache(u, uprev, tmp_cache, k_slow, k_fast, T, fsalfirst, k)
 end
 
 function alg_cache(

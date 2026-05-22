@@ -81,7 +81,8 @@ end
 
 @muladd function perform_step!(integrator, cache::ImplicitEulerCache, repeat_step = false)
     (; t, dt, uprev, u, f, p) = integrator
-    (; atmp, nlsolver, step_limiter!) = cache
+    (; nlsolver, step_limiter!) = cache
+    atmp = cache.tmp_cache.atmp
     (; z, tmp) = nlsolver
     alg = unwrap_alg(integrator, true)
     markfirststage!(nlsolver)
@@ -213,7 +214,8 @@ end
 
 @muladd function perform_step!(integrator, cache::TrapezoidCache, repeat_step = false)
     (; t, dt, uprev, u, f, p) = integrator
-    (; atmp, nlsolver, step_limiter!) = cache
+    (; nlsolver, step_limiter!) = cache
+    atmp = cache.tmp_cache.atmp
     (; z, tmp) = nlsolver
     alg = unwrap_alg(integrator, true)
     mass_matrix = integrator.f.mass_matrix

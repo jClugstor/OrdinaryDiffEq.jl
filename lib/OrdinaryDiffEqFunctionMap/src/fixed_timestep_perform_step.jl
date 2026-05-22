@@ -6,7 +6,7 @@ end
 function perform_step!(integrator, cache::FunctionMapCache, repeat_step = false)
     (; u, uprev, dt, t, f, p) = integrator
     alg = unwrap_alg(integrator, nothing)
-    (; tmp) = cache
+    tmp = cache.tmp_cache.tmp
     return if integrator.f != DiffEqBase.DISCRETE_INPLACE_DEFAULT &&
             !(
             integrator.f isa DiffEqBase.EvalFunc &&

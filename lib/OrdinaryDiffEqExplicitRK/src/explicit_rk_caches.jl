@@ -2,9 +2,7 @@
     OrdinaryDiffEqMutableCache
     u::uType
     uprev::uType
-    tmp::uType
-    utilde::rateType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     fsalfirst::rateType
     fsallast::rateType
     kk::Vector{rateType}
@@ -17,7 +15,8 @@ function alg_cache(
         alg::ExplicitRK, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
     kk = Vector{typeof(rate_prototype)}(undef, 0)
     for i in 1:(alg.tableau.stages)
@@ -30,11 +29,9 @@ function alg_cache(
         fsallast = zero(rate_prototype)
     end
     utilde = zero(rate_prototype)
-    tmp = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
     tab = ExplicitRKConstantCache(alg.tableau, rate_prototype, typeof(dt))
-    return ExplicitRKCache(u, uprev, tmp, utilde, atmp, fsalfirst, fsallast, kk, tab)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits; need_tmp = true, need_tmp2 = true, need_atmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return ExplicitRKCache(u, uprev, tmp_cache, fsalfirst, fsallast, kk, tab)
 end
 
 struct ExplicitRKConstantCache{MType, VType, CType, KType, BType, BiType} <:

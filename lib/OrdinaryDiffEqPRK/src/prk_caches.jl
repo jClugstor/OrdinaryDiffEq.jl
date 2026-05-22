@@ -7,7 +7,7 @@
     k3::rateType
     k4::rateType
     k5_6::Array{rateType, 1}
-    tmp::uType
+    tmp_cache::TmpCache{uType, rateType, Nothing}
     fsalfirst::rateType
     tab::TabType
 end
@@ -69,9 +69,9 @@ function alg_cache(
         alg::KuttaPRK2p5, u, rate_prototype, ::Type{uEltypeNoUnits},
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
-        ::Val{true}, verbose
+        ::Val{true}, verbose;
+        preallocate_init_dt_extras::Bool = true
     ) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    tmp = zero(u)
     k = zero(rate_prototype)
     k1 = zero(rate_prototype)
     k2 = zero(rate_prototype)
@@ -85,7 +85,8 @@ function alg_cache(
         constvalue(uBottomEltypeNoUnits),
         constvalue(tTypeNoUnits)
     )
-    return KuttaPRK2p5Cache(u, uprev, k, k1, k2, k3, k4, k5_6, tmp, fsalfirst, tab)
+    tmp_cache = build_tmp_cache(u, rate_prototype, Nothing; need_tmp = true, preallocate_init_dt_extras = preallocate_init_dt_extras)
+    return KuttaPRK2p5Cache(u, uprev, k, k1, k2, k3, k4, k5_6, tmp_cache, fsalfirst, tab)
 end
 
 function alg_cache(

@@ -60,8 +60,7 @@ mutable struct RadauIIA3Cache{
     κ::Tol
     ηold::Tol
     iter::Int
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     jac_config::JC
     linsolve::F1
     rtol::rTol
@@ -100,11 +99,8 @@ function alg_cache(
     fw2 = zero(rate_prototype)
 
     du1 = zero(rate_prototype)
-
-    tmp = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
-    jac_config = build_jac_config(alg, f, uf, du1, uprev, u, tmp, dw12)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits)
+    jac_config = build_jac_config(alg, f, uf, du1, uprev, u, tmp_cache.tmp, dw12)
 
     J, W1 = build_J_W(alg, u, uprev, p, t, dt, f, jac_config, uEltypeNoUnits, Val(true))
     W1 = similar(J, Complex{eltype(W1)})
@@ -129,7 +125,7 @@ function alg_cache(
         du1, fsalfirst, k, k2, fw1, fw2,
         J, W1,
         uf, tab, κ, one(uToltype), 10000,
-        tmp, atmp, jac_config, linsolve, rtol, atol, dt, dt,
+        tmp_cache, jac_config, linsolve, rtol, atol, dt, dt,
         Convergence, alg.step_limiter!
     )
 end
@@ -203,8 +199,7 @@ mutable struct RadauIIA5Cache{
     κ::Tol
     ηold::Tol
     iter::Int
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     jac_config::JC
     linsolve1::F1
     linsolve2::F2
@@ -251,11 +246,8 @@ function alg_cache(
     fw3 = zero(rate_prototype)
 
     du1 = zero(rate_prototype)
-
-    tmp = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
-    jac_config = build_jac_config(alg, f, uf, du1, uprev, u, tmp, dw1)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits)
+    jac_config = build_jac_config(alg, f, uf, du1, uprev, u, tmp_cache.tmp, dw1)
 
     J, W1 = build_J_W(alg, u, uprev, p, t, dt, f, jac_config, uEltypeNoUnits, Val(true))
     if J isa AbstractSciMLOperator
@@ -289,7 +281,7 @@ function alg_cache(
         du1, fsalfirst, k, k1, k2, k3, fw1, fw2, fw3,
         J, W1, W2,
         uf, tab, κ, one(uToltype), 10000,
-        tmp, atmp, jac_config, linsolve1, linsolve2, rtol, atol, dt, dt,
+        tmp_cache, jac_config, linsolve1, linsolve2, rtol, atol, dt, dt,
         Convergence, alg.step_limiter!
     )
 end
@@ -376,7 +368,6 @@ mutable struct RadauIIA9Cache{
     κ::Tol
     ηold::Tol
     iter::Int
-    tmp::uType
     tmp2::uType
     tmp3::uType
     tmp4::uType
@@ -386,7 +377,7 @@ mutable struct RadauIIA9Cache{
     tmp8::uType
     tmp9::uType
     tmp10::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     jac_config::JC
     linsolve1::F1
     linsolve2::F2
@@ -459,7 +450,7 @@ function alg_cache(
     tmp10 = zero(u)
     atmp = similar(u, uEltypeNoUnits)
     recursivefill!(atmp, false)
-    jac_config = build_jac_config(alg, f, uf, du1, uprev, u, tmp, dw1)
+    jac_config = build_jac_config(alg, f, uf, du1, uprev, u, tmp_cache.tmp, dw1)
 
     J, W1 = build_J_W(alg, u, uprev, p, t, dt, f, jac_config, uEltypeNoUnits, Val(true))
     if J isa AbstractSciMLOperator
@@ -596,8 +587,7 @@ mutable struct AdaptiveRadauCache{
     κ::Tol
     ηold::Tol
     iter::Int
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     jac_config::JC
     linsolve1::F1 #real
     linsolve2::Vector{F2} #complex
@@ -676,11 +666,7 @@ function alg_cache(
     k = ks[1]
 
     du1 = zero(rate_prototype)
-
-    tmp = zero(u)
-
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits)
 
     jac_config = build_jac_config(alg, f, uf, du1, uprev, u, zero(u), dw1)
 
@@ -717,8 +703,7 @@ function alg_cache(
         z, w, c_prime, αdt, βdt, dw1, ubuff, dw2, cubuff, dw, derivatives,
         du1, fsalfirst, ks, k, fw,
         J, W1, W2,
-        uf, tabs, κ, one(uToltype), 10000, tmp,
-        atmp, jac_config,
+        uf, tabs, κ, one(uToltype), 10000, tmp_cache, jac_config,
         linsolve1, linsolve2, rtol, atol, dt, dt,
         Convergence, alg.step_limiter!, num_stages, 1, 0.0, index
     )
@@ -787,8 +772,7 @@ mutable struct GaussLegendreCache{
     κ::Tol
     ηold::Tol
     iter::Int
-    tmp::uType
-    atmp::uNoUnitsType
+    tmp_cache::TmpCache{uType, rateType, uNoUnitsType}
     jac_config::JC
     linsolve::F1
     rtol::rTol
@@ -827,11 +811,8 @@ function alg_cache(
     ks = [zero(rate_prototype) for _ in 1:num_stages]
     fw = [zero(rate_prototype) for _ in 1:num_stages]
     du1 = zero(rate_prototype)
-
-    tmp = zero(u)
-    atmp = similar(u, uEltypeNoUnits)
-    recursivefill!(atmp, false)
-    jac_config = build_jac_config(alg, f, uf, du1, uprev, u, tmp, dw[1])
+    tmp_cache = build_tmp_cache(u, rate_prototype, uEltypeNoUnits)
+    jac_config = build_jac_config(alg, f, uf, du1, uprev, u, tmp_cache.tmp, dw[1])
 
     J, _ = build_J_W(alg, u, uprev, p, t, dt, f, jac_config, uEltypeNoUnits, Val(true))
     if J isa AbstractSciMLOperator
@@ -858,7 +839,7 @@ function alg_cache(
         du1, fsalfirst, k, ks, fw,
         J, W,
         uf, tab, κ, one(uToltype), 10000,
-        tmp, atmp, jac_config, linsolve, rtol, atol, dt, dt,
+        tmp_cache, jac_config, linsolve, rtol, atol, dt, dt,
         Convergence, alg.step_limiter!, num_stages
     )
 end

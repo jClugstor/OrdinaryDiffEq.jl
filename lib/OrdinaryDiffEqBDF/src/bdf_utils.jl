@@ -50,7 +50,7 @@ end
 # Implementation of an Adaptive BDF2 Formula and Comparison with the MATLAB Ode15s paper
 # E. Alberdi Celaya, J. J. Anza Aguirrezabala, and P. Chatzipantelidis
 function reinterpolate_history!(cache::OrdinaryDiffEqMutableCache, D, R, k)
-    (; tmp) = cache.nlsolver
+    tmp = cache.tmp_cache.tmp.nlsolver
     fill!(tmp, zero(eltype(D[1])))
     for j in 1:k
         for k in 1:k
