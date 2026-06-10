@@ -85,7 +85,8 @@ end
 @muladd function _ode_addsteps!(k,t,uprev,u,dt,f,p,cache::Tsit5Cache,always_calc_begin = false,allow_calc_end = true,force_calc_end = false)
   if length(k)<7 || always_calc_begin
     (; c1,c2,c3,c4,c5,c6,a21,a31,a32,a41,a42,a43,a51,a52,a53,a54,a61,a62,a63,a64,a65,a71,a72,a73,a74,a75,a76) = cache.tab
-    (; k1,k2,k3,k4,k5,k6,k7,tmp) = cache
+    (; k1,k2,k3,k4,k5,k6,k7) = cache
+    tmp = cache.tmp_cache.tmp
     uidx = eachindex(uprev)
     @tight_loop_macros for i in uidx
       @inbounds tmp[i] = uprev[i]+dt*(a21*k1[i])

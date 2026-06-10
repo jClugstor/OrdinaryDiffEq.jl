@@ -168,7 +168,12 @@ end
 function calc_tderivative!(integrator, cache, dtd1, repeat_step)
     return @inbounds begin
         (; t, dt, uprev, u, f, p) = integrator
-        (; du2, fsalfirst, dT, tf, linsolve_tmp) = cache
+        (; du2, fsalfirst, dT, tf) = cache
+        # Rosenbrock's old `linsolve_tmp` rateType field now lives at
+        # `tmp_cache.rate_tmp` (the linsolve RHS buffer). This is distinct
+        # from the cache's separate `tmp::rateType` (jac_config scratch) and
+        # from `linsolve_tmp_z` (the DAE algebraic-solve RHS).
+        linsolve_tmp = cache.tmp_cache.rate_tmp
 
         # Time derivative
         if !repeat_step # skip calculation if step is repeated
