@@ -31,7 +31,7 @@ using SciMLLogging: SciMLLogging
 using ADTypes: ADTypes, AutoForwardDiff, AutoFiniteDiff, AutoSparse
 
 # Import from OrdinaryDiffEqCore
-using OrdinaryDiffEqCore: OrdinaryDiffEqCore
+using OrdinaryDiffEqCore: OrdinaryDiffEqCore, DEVerbosity
 
 # Import from OrdinaryDiffEqDefault
 using OrdinaryDiffEqDefault: DefaultODEAlgorithm
@@ -67,5 +67,7 @@ export Tsit5, AutoTsit5
 export Vern6, Vern7, Vern8, Vern9, AutoVern6, AutoVern7, AutoVern8, AutoVern9
 export Rosenbrock23, Rodas5P
 export FBDF
+
+export DEVerbosity
 
 end # module
