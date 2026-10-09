@@ -34,6 +34,22 @@ struct InterpolationData{
     # Warm-start hint for the interval search in scalar `ode_interpolation`;
     # see `TsSearchHint`.
     ts_hint::TsSearchHint{tType}
+    # Intervals of a step that a callback cut short. `cut_index` holds the sorted
+    # indices `i` of `ks` whose interval `(ts[i-1], ts[i]]` is a cut step, and
+    # `cut_dt` the length of the completed step for each. The dense output of such
+    # an interval is the curve of the completed step. See `_cut_dt`.
+    cut_index::Vector{Int}
+    cut_dt::tType
+end
+
+function InterpolationData(
+        f, timeseries, ts, ks, alg_choice, dense, cache,
+        differential_vars, sensitivitymode, ts_hint::TsSearchHint
+    )
+    return InterpolationData(
+        f, timeseries, ts, ks, alg_choice, dense, cache,
+        differential_vars, sensitivitymode, ts_hint, Int[], similar(ts, 0)
+    )
 end
 
 # Downstream packages (e.g. StochasticDiffEq) construct `InterpolationData`
@@ -51,12 +67,29 @@ end
 
 @inline _ts_hint(id::InterpolationData) = id.ts_hint
 
+# Cut steps: see `_interval_curve` and `push_cut!`.
+@inline function _cut_dt(id::InterpolationData, i₊)
+    idx = id.cut_index
+    isempty(idx) && return nothing
+    j = searchsortedfirst(idx, i₊)
+    return (j <= length(idx) && @inbounds(idx[j]) == i₊) ? @inbounds(id.cut_dt[j]) : nothing
+end
+
+function _truncate_cuts!(id::InterpolationData, n)
+    while !isempty(id.cut_index) && last(id.cut_index) > n
+        pop!(id.cut_index)
+        pop!(id.cut_dt)
+    end
+    return nothing
+end
+
 @static if isdefined(SciMLBase, :enable_interpolation_sensitivitymode)
     function SciMLBase.enable_interpolation_sensitivitymode(interp::InterpolationData)
         InterpolationData(
             interp.f, interp.timeseries, interp.ts, interp.ks,
             interp.alg_choice, interp.dense, interp.cache,
-            interp.differential_vars, true
+            interp.differential_vars, true, TsSearchHint(interp.ts),
+            interp.cut_index, interp.cut_dt
         )
     end
 end
@@ -100,7 +133,10 @@ function InterpolationData(id::InterpolationData, f)
         id.dense,
         id.cache,
         id.differential_vars,
-        id.sensitivitymode
+        id.sensitivitymode,
+        TsSearchHint(id.ts),
+        id.cut_index,
+        id.cut_dt
     )
 end
 
@@ -116,7 +152,10 @@ function SciMLBase.strip_interpolation(id::InterpolationData)
         id.dense,
         cache,
         id.differential_vars,
-        id.sensitivitymode
+        id.sensitivitymode,
+        TsSearchHint(id.ts),
+        id.cut_index,
+        id.cut_dt
     )
 end
 

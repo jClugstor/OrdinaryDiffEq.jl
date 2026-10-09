@@ -108,6 +108,34 @@ function get_fsalfirstlast(cache::DefaultCache, u)
     return (cache.u, cache.u) # will be overwritten by the cache choice
 end
 
+"""
+    uses_cut_curve(cache) -> Bool
+
+Whether a step of `cache` that a callback cuts short keeps the dense output of the
+completed step. If `true`, the stages of the completed step are not recomputed for the
+shorter step. The interpolant of the cut interval is evaluated with the length of the
+completed step instead, so it ends exactly at the state that the callback found.
+
+A cache may return `true` only if its `_ode_interpolant[!]` and its `_ode_addsteps!`
+(without `always_calc_begin`) do not read the value of `y₁` / `u`. The cut interval
+passes the state at the event as `y₁`, not the end state of the completed step.
+"""
+uses_cut_curve(cache) = false
+uses_cut_curve(cache::CompositeCache) = _uses_cut_curve(cache.caches, cache.current)
+@inline _uses_cut_curve(caches::Tuple{}, i) = false
+@inline function _uses_cut_curve(caches::Tuple, i)
+    return i == 1 ? uses_cut_curve(first(caches)) : _uses_cut_curve(Base.tail(caches), i - 1)
+end
+function uses_cut_curve(cache::DefaultCache)
+    current = cache.current
+    return current == 1 ? uses_cut_curve(cache.cache1) :
+        current == 2 ? uses_cut_curve(cache.cache2) :
+        current == 3 ? uses_cut_curve(cache.cache3) :
+        current == 4 ? uses_cut_curve(cache.cache4) :
+        current == 5 ? uses_cut_curve(cache.cache5) :
+        current == 6 ? uses_cut_curve(cache.cache6) : false
+end
+
 function ismutablecache(
         cache::DefaultCache{
             T1, T2, T3, T4, T5, T6, A, F, uType,

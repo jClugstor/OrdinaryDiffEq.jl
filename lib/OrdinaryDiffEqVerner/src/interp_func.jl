@@ -57,3 +57,10 @@ function SciMLBase.interp_summary(
     }
     return dense ? "specialized 7th order lazy interpolation" : "1st order linear"
 end
+
+# The interpolant and the lazy stages do not read `y₁`, so a cut step keeps the curve of
+# the completed step. See `OrdinaryDiffEqCore.uses_cut_curve`.
+OrdinaryDiffEqCore.uses_cut_curve(::Union{
+    Vern6Cache, Vern6ConstantCache, Vern7Cache, Vern7ConstantCache,
+    Vern8Cache, Vern8ConstantCache, Vern9Cache, Vern9ConstantCache,
+}) = true

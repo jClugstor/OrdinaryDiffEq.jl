@@ -191,6 +191,9 @@ mutable struct ODEIntegrator{
     just_hit_tstop::Bool
     next_step_tstop::Bool
     tstop_target::tType
+    # Length of the completed step while a callback has cut it short, zero otherwise.
+    # See `_curve_dt`.
+    curve_dt::tType
     do_error_check::Bool
     event_last_time::Int
     vector_event_last_time::Int

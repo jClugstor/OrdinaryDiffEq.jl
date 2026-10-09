@@ -148,6 +148,31 @@ end
     return (i₋, i₋)
 end
 
+# Length of the step whose curve covers the current step of `integrator`. After a
+# callback cuts the step with `uses_cut_curve`, this is the completed step, not
+# `t - tprev`. See `_start_cut_curve!`.
+@inline _curve_dt(integrator::ODEIntegrator) =
+    iszero(integrator.curve_dt) ? integrator.dt : integrator.curve_dt
+@inline _curve_dt(integrator) = integrator.dt
+
+# Length of the completed step if interval `i₊` of `id` is a cut step, else `nothing`.
+# The method for `InterpolationData` is in `interp_func.jl`.
+@inline _cut_dt(id, i₊) = nothing
+
+# `(dt, Θ, i₋)` for the interpolant of interval `(i₋, i₊)` at `t`. A cut interval is
+# evaluated on the curve of the completed step. A collapsed left knot at the event
+# (`i₋ == i₊`) evaluates a derivative at the end of the cut interval.
+@inline function _interval_curve(id, ts, i₋, i₊, t, ::Type{deriv}) where {deriv}
+    c = _cut_dt(id, i₊)
+    if c === nothing
+        dt = ts[i₊] - ts[i₋]
+        Θ = iszero(dt) ? oneunit(t) / oneunit(dt) : (t - ts[i₋]) / dt
+        return dt, Θ, i₋
+    end
+    i₀ = (i₋ == i₊ && deriv !== Val{0}) ? i₊ - 1 : i₋
+    return c, (t - ts[i₀]) / c, i₀
+end
+
 """
     ode_addsteps!(k, integrator, ...)
     ode_addsteps!(k, t, uprev, u, dt, f, p, cache, always_calc_begin = false, allow_calc_end = true, force_calc_end = false)
@@ -167,7 +192,7 @@ that compute their method-specific extra `k` stages on demand.
             _ode_addsteps!(
                 integrator.k, integrator.tprev, integrator.uprev,
                 integrator.u,
-                integrator.dt, f, integrator.p,
+                _curve_dt(integrator), f, integrator.p,
                 cache.caches[1],
                 always_calc_begin, allow_calc_end, force_calc_end
             )
@@ -175,7 +200,7 @@ that compute their method-specific extra `k` stages on demand.
             _ode_addsteps!(
                 integrator.k, integrator.tprev, integrator.uprev,
                 integrator.u,
-                integrator.dt, f, integrator.p,
+                _curve_dt(integrator), f, integrator.p,
                 cache.caches[2],
                 always_calc_begin, allow_calc_end, force_calc_end
             )
@@ -184,7 +209,7 @@ that compute their method-specific extra `k` stages on demand.
             _ode_addsteps!(
                 integrator.k, integrator.tprev, integrator.uprev,
                 integrator.u,
-                integrator.dt, f, integrator.p,
+                _curve_dt(integrator), f, integrator.p,
                 cache.caches[cache_current],
                 always_calc_begin, allow_calc_end, force_calc_end
             )
@@ -195,7 +220,7 @@ that compute their method-specific extra `k` stages on demand.
             _ode_addsteps!(
                 integrator.k, integrator.tprev, integrator.uprev,
                 integrator.u,
-                integrator.dt, f, integrator.p,
+                _curve_dt(integrator), f, integrator.p,
                 cache.cache1,
                 always_calc_begin, allow_calc_end, force_calc_end
             )
@@ -203,7 +228,7 @@ that compute their method-specific extra `k` stages on demand.
             _ode_addsteps!(
                 integrator.k, integrator.tprev, integrator.uprev,
                 integrator.u,
-                integrator.dt, f, integrator.p,
+                _curve_dt(integrator), f, integrator.p,
                 cache.cache2,
                 always_calc_begin, allow_calc_end, force_calc_end
             )
@@ -211,7 +236,7 @@ that compute their method-specific extra `k` stages on demand.
             _ode_addsteps!(
                 integrator.k, integrator.tprev, integrator.uprev,
                 integrator.u,
-                integrator.dt, f, integrator.p,
+                _curve_dt(integrator), f, integrator.p,
                 cache.cache3,
                 always_calc_begin, allow_calc_end, force_calc_end
             )
@@ -219,7 +244,7 @@ that compute their method-specific extra `k` stages on demand.
             _ode_addsteps!(
                 integrator.k, integrator.tprev, integrator.uprev,
                 integrator.u,
-                integrator.dt, f, integrator.p,
+                _curve_dt(integrator), f, integrator.p,
                 cache.cache4,
                 always_calc_begin, allow_calc_end, force_calc_end
             )
@@ -227,7 +252,7 @@ that compute their method-specific extra `k` stages on demand.
             _ode_addsteps!(
                 integrator.k, integrator.tprev, integrator.uprev,
                 integrator.u,
-                integrator.dt, f, integrator.p,
+                _curve_dt(integrator), f, integrator.p,
                 cache.cache5,
                 always_calc_begin, allow_calc_end, force_calc_end
             )
@@ -235,7 +260,7 @@ that compute their method-specific extra `k` stages on demand.
             _ode_addsteps!(
                 integrator.k, integrator.tprev, integrator.uprev,
                 integrator.u,
-                integrator.dt, f, integrator.p,
+                _curve_dt(integrator), f, integrator.p,
                 cache.cache6,
                 always_calc_begin, allow_calc_end, force_calc_end
             )
@@ -243,7 +268,7 @@ that compute their method-specific extra `k` stages on demand.
     else
         _ode_addsteps!(
             integrator.k, integrator.tprev, integrator.uprev, integrator.u,
-            integrator.dt, f, integrator.p, cache,
+            _curve_dt(integrator), f, integrator.p, cache,
             always_calc_begin, allow_calc_end, force_calc_end
         )
     end
@@ -269,7 +294,7 @@ end
         )
     else
         val = ode_interpolant(
-            Θ, integrator.dt, integrator.uprev, integrator.u,
+            Θ, _curve_dt(integrator), integrator.uprev, integrator.u,
             integrator.k, integrator.cache, idxs, deriv, integrator.differential_vars
         )
     end
@@ -281,37 +306,37 @@ function default_ode_interpolant(
     ) where {deriv}
     if alg_choice == 1
         return ode_interpolant(
-            Θ, integrator.dt, integrator.uprev,
+            Θ, _curve_dt(integrator), integrator.uprev,
             integrator.u, integrator.k, cache.cache1, idxs,
             deriv, integrator.differential_vars
         )
     elseif alg_choice == 2
         return ode_interpolant(
-            Θ, integrator.dt, integrator.uprev,
+            Θ, _curve_dt(integrator), integrator.uprev,
             integrator.u, integrator.k, cache.cache2, idxs,
             deriv, integrator.differential_vars
         )
     elseif alg_choice == 3
         return ode_interpolant(
-            Θ, integrator.dt, integrator.uprev,
+            Θ, _curve_dt(integrator), integrator.uprev,
             integrator.u, integrator.k, cache.cache3, idxs,
             deriv, integrator.differential_vars
         )
     elseif alg_choice == 4
         return ode_interpolant(
-            Θ, integrator.dt, integrator.uprev,
+            Θ, _curve_dt(integrator), integrator.uprev,
             integrator.u, integrator.k, cache.cache4, idxs,
             deriv, integrator.differential_vars
         )
     elseif alg_choice == 5
         return ode_interpolant(
-            Θ, integrator.dt, integrator.uprev,
+            Θ, _curve_dt(integrator), integrator.uprev,
             integrator.u, integrator.k, cache.cache5, idxs,
             deriv, integrator.differential_vars
         )
     elseif alg_choice == 6
         return ode_interpolant(
-            Θ, integrator.dt, integrator.uprev,
+            Θ, _curve_dt(integrator), integrator.uprev,
             integrator.u, integrator.k, cache.cache6, idxs,
             deriv, integrator.differential_vars
         )
@@ -331,7 +356,7 @@ end
             quote
                 if $i == current
                     return ode_interpolant(
-                        Θ, integrator.dt, integrator.uprev,
+                        Θ, _curve_dt(integrator), integrator.uprev,
                         integrator.u, integrator.k, caches[$i], idxs,
                         deriv, integrator.differential_vars
                     )
@@ -354,7 +379,7 @@ end
     _check_interpolant_idxs_out(integrator.u, val, idxs)
     return if integrator.cache isa CompositeCache
         ode_interpolant!(
-            val, Θ, integrator.dt, integrator.uprev, integrator.u,
+            val, Θ, _curve_dt(integrator), integrator.uprev, integrator.u,
             integrator.k, integrator.cache.caches[integrator.cache.current],
             idxs, deriv, integrator.differential_vars
         )
@@ -362,37 +387,37 @@ end
         alg_choice = integrator.cache.current
         if alg_choice == 1
             ode_interpolant!(
-                val, Θ, integrator.dt, integrator.uprev, integrator.u,
+                val, Θ, _curve_dt(integrator), integrator.uprev, integrator.u,
                 integrator.k, integrator.cache.cache1,
                 idxs, deriv, integrator.differential_vars
             )
         elseif alg_choice == 2
             ode_interpolant!(
-                val, Θ, integrator.dt, integrator.uprev, integrator.u,
+                val, Θ, _curve_dt(integrator), integrator.uprev, integrator.u,
                 integrator.k, integrator.cache.cache2,
                 idxs, deriv, integrator.differential_vars
             )
         elseif alg_choice == 3
             ode_interpolant!(
-                val, Θ, integrator.dt, integrator.uprev, integrator.u,
+                val, Θ, _curve_dt(integrator), integrator.uprev, integrator.u,
                 integrator.k, integrator.cache.cache3,
                 idxs, deriv, integrator.differential_vars
             )
         elseif alg_choice == 4
             ode_interpolant!(
-                val, Θ, integrator.dt, integrator.uprev, integrator.u,
+                val, Θ, _curve_dt(integrator), integrator.uprev, integrator.u,
                 integrator.k, integrator.cache.cache4,
                 idxs, deriv, integrator.differential_vars
             )
         elseif alg_choice == 5
             ode_interpolant!(
-                val, Θ, integrator.dt, integrator.uprev, integrator.u,
+                val, Θ, _curve_dt(integrator), integrator.uprev, integrator.u,
                 integrator.k, integrator.cache.cache5,
                 idxs, deriv, integrator.differential_vars
             )
         elseif alg_choice == 6
             ode_interpolant!(
-                val, Θ, integrator.dt, integrator.uprev, integrator.u,
+                val, Θ, _curve_dt(integrator), integrator.uprev, integrator.u,
                 integrator.k, integrator.cache.cache6,
                 idxs, deriv, integrator.differential_vars
             )
@@ -401,7 +426,7 @@ end
         end
     else
         ode_interpolant!(
-            val, Θ, integrator.dt, integrator.uprev, integrator.u,
+            val, Θ, _curve_dt(integrator), integrator.uprev, integrator.u,
             integrator.k, integrator.cache, idxs, deriv, integrator.differential_vars
         )
     end
@@ -412,37 +437,37 @@ function default_ode_interpolant!(
     )
     if alg_choice == 1
         return ode_interpolant!(
-            val, Θ, integrator.dt, integrator.uprev,
+            val, Θ, _curve_dt(integrator), integrator.uprev,
             integrator.u, integrator.k, cache.cache1, idxs,
             deriv, integrator.differential_vars
         )
     elseif alg_choice == 2
         return ode_interpolant!(
-            val, Θ, integrator.dt, integrator.uprev,
+            val, Θ, _curve_dt(integrator), integrator.uprev,
             integrator.u, integrator.k, cache.cache2, idxs,
             deriv, integrator.differential_vars
         )
     elseif alg_choice == 3
         return ode_interpolant!(
-            val, Θ, integrator.dt, integrator.uprev,
+            val, Θ, _curve_dt(integrator), integrator.uprev,
             integrator.u, integrator.k, cache.cache3, idxs,
             deriv, integrator.differential_vars
         )
     elseif alg_choice == 4
         return ode_interpolant!(
-            val, Θ, integrator.dt, integrator.uprev,
+            val, Θ, _curve_dt(integrator), integrator.uprev,
             integrator.u, integrator.k, cache.cache4, idxs,
             deriv, integrator.differential_vars
         )
     elseif alg_choice == 5
         return ode_interpolant!(
-            val, Θ, integrator.dt, integrator.uprev,
+            val, Θ, _curve_dt(integrator), integrator.uprev,
             integrator.u, integrator.k, cache.cache5, idxs,
             deriv, integrator.differential_vars
         )
     elseif alg_choice == 6
         return ode_interpolant!(
-            val, Θ, integrator.dt, integrator.uprev,
+            val, Θ, _curve_dt(integrator), integrator.uprev,
             integrator.u, integrator.k, cache.cache6, idxs,
             deriv, integrator.differential_vars
         )
@@ -462,7 +487,7 @@ end
             quote
                 if $i == current
                     return ode_interpolant!(
-                        val, Θ, integrator.dt, integrator.uprev,
+                        val, Θ, _curve_dt(integrator), integrator.uprev,
                         integrator.u, integrator.k, caches[$i], idxs,
                         deriv
                     )
@@ -490,12 +515,12 @@ Evaluate the dense-output interpolant of the *current* step at absolute time(s)
         t::Number, integrator::SciMLBase.DEIntegrator, idxs,
         deriv
     )
-    Θ = (t - integrator.tprev) / integrator.dt
+    Θ = (t - integrator.tprev) / _curve_dt(integrator)
     return ode_interpolant(Θ, integrator, idxs, deriv)
 end
 
 @inline function current_interpolant(t, integrator::SciMLBase.DEIntegrator, idxs, deriv)
-    Θ = (t .- integrator.tprev) ./ integrator.dt
+    Θ = (t .- integrator.tprev) ./ _curve_dt(integrator)
     return [ode_interpolant(ϕ, integrator, idxs, deriv) for ϕ in Θ]
 end
 
@@ -503,7 +528,7 @@ end
         val, t::Number, integrator::SciMLBase.DEIntegrator,
         idxs, deriv
     )
-    Θ = (t - integrator.tprev) / integrator.dt
+    Θ = (t - integrator.tprev) / _curve_dt(integrator)
     return ode_interpolant!(val, Θ, integrator, idxs, deriv)
 end
 
@@ -511,7 +536,7 @@ end
         val, t, integrator::SciMLBase.DEIntegrator, idxs,
         deriv
     )
-    Θ = (t .- integrator.tprev) ./ integrator.dt
+    Θ = (t .- integrator.tprev) ./ _curve_dt(integrator)
     return [ode_interpolant!(val, ϕ, integrator, idxs, deriv) for ϕ in Θ]
 end
 
@@ -521,7 +546,7 @@ end
     )
     Θ = similar(t)
     @inbounds @simd ivdep for i in eachindex(t)
-        Θ[i] = (t[i] - integrator.tprev) / integrator.dt
+        Θ[i] = (t[i] - integrator.tprev) / _curve_dt(integrator)
     end
     return [ode_interpolant!(val, ϕ, integrator, idxs, deriv) for ϕ in Θ]
 end
@@ -911,8 +936,7 @@ function ode_interpolation(
         end
         id.sensitivitymode && error(SENSITIVITY_INTERP_MESSAGE)
         i₋₊ref[] = (i₋, i₊)
-        dt = ts[i₊] - ts[i₋]
-        Θ = iszero(dt) ? oneunit(t) / oneunit(dt) : (t - ts[i₋]) / dt
+        dt, Θ, i₋ = _interval_curve(id, ts, i₋, i₊, t, deriv)
         evaluate_interpolant(
             f, Θ, dt, timeseries, i₋, i₊, cache, idxs,
             deriv, ks, ts, id, p, differential_vars
@@ -1012,8 +1036,7 @@ function ode_interpolation!(
             end
         end
 
-        dt = ts[i₊] - ts[i₋]
-        Θ = iszero(dt) ? oneunit(t) / oneunit(dt) : (t - ts[i₋]) / dt
+        dt, Θ, i₋ = _interval_curve(id, ts, i₋, i₊, t, deriv)
 
         if i₋ == i₊ && deriv === Val{0}
             if _vals_eltype(vals) <: AbstractArray
@@ -1226,8 +1249,7 @@ function ode_interpolation(
     id.sensitivitymode && error(SENSITIVITY_INTERP_MESSAGE)
 
     @inbounds begin
-        dt = ts[i₊] - ts[i₋]
-        Θ = iszero(dt) ? oneunit(tval) / oneunit(dt) : (tval - ts[i₋]) / dt
+        dt, Θ, i₋ = _interval_curve(id, ts, i₋, i₊, tval, deriv)
 
         if i₋ == i₊ && deriv === Val{0}
             val = linear_interpolant(Θ, dt, timeseries[i₋], timeseries[i₊], idxs, deriv)
@@ -1351,8 +1373,7 @@ function ode_interpolation!(
     _check_interpolant_idxs_out(timeseries[i₊], out, idxs)
 
     @inbounds begin
-        dt = ts[i₊] - ts[i₋]
-        Θ = iszero(dt) ? oneunit(tval) / oneunit(dt) : (tval - ts[i₋]) / dt
+        dt, Θ, i₋ = _interval_curve(id, ts, i₋, i₊, tval, deriv)
 
         if i₋ == i₊ && deriv === Val{0}
             linear_interpolant!(out, Θ, dt, timeseries[i₋], timeseries[i₊], idxs, deriv)
