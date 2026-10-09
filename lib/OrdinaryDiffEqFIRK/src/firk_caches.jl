@@ -867,8 +867,10 @@ function alg_cache(
 end
 
 # The interpolant and the lazy stages do not read `y₁`, so a cut step keeps the curve of
-# the completed step. See `OrdinaryDiffEqCore.uses_cut_curve`.
+# the completed step. See `OrdinaryDiffEqCore.uses_cut_curve`. AdaptiveRadau is not in
+# this list: `k` does not record the number of stages of a step, so its interpolants
+# cannot find the end state of the completed step.
 OrdinaryDiffEqCore.uses_cut_curve(::Union{
     RadauIIA3Cache, RadauIIA3ConstantCache, RadauIIA5Cache, RadauIIA5ConstantCache,
-    RadauIIA9Cache, RadauIIA9ConstantCache, AdaptiveRadauCache, AdaptiveRadauConstantCache,
+    RadauIIA9Cache, RadauIIA9ConstantCache,
 }) = true
