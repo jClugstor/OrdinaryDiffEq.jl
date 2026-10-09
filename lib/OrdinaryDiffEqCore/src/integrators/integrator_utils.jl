@@ -173,6 +173,7 @@ and accept any noise process. Called by the integrator loop after a step is
 accepted.
 """
 function apply_step!(integrator)
+    _reset_cut_curve!(integrator)
     update_uprev!(integrator)
 
     #Update dt if adaptive or if fixed and the dt is allowed to change
@@ -350,7 +351,7 @@ function _savevalues!(integrator, force_save, reduce_size)::Tuple{Bool, Bool}
         saved = true
         curt = integrator.tdir * pop!(saveat)
         if curt != integrator.t # If <t, interpolate
-            Θ = (curt - integrator.tprev) / integrator.dt
+            Θ = (curt - integrator.tprev) / _curve_dt(integrator)
             val = interp_at_saveat(Θ, integrator, integrator.opts.save_idxs, Val{0})
             copyat_or_push!(integrator.sol.t, integrator.saveiter, curt)
             save_val = val
@@ -458,22 +459,43 @@ end
 function save_dense_at_t!(integrator)
     return if (isdiscretealg(integrator.alg) || integrator.opts.dense) && _has_ks(integrator)
         integrator.saveiter_dense += 1
-        if integrator.opts.dense
-            if integrator.opts.save_idxs === nothing
-                copyat_or_push!(
-                    integrator.sol.k, integrator.saveiter_dense,
-                    integrator.k
-                )
-            else
-                copyat_or_push!(
-                    integrator.sol.k, integrator.saveiter_dense,
-                    [k[integrator.opts.save_idxs] for k in integrator.k],
-                    false
-                )
-            end
-        end
+        integrator.opts.dense && push_dense!(integrator)
     end
 end
+
+# Store the stages of the interval that the save at `integrator.t` closes.
+function push_dense!(integrator)
+    if integrator.opts.save_idxs === nothing
+        copyat_or_push!(integrator.sol.k, integrator.saveiter_dense, integrator.k)
+    else
+        copyat_or_push!(
+            integrator.sol.k, integrator.saveiter_dense,
+            [k[integrator.opts.save_idxs] for k in integrator.k],
+            false
+        )
+    end
+    push_cut!(integrator)
+    return nothing
+end
+
+# Mark the interval that this save closes as a cut step: its stages belong to the
+# completed step of length `curve_dt`. The post-affect save at the same time closes an
+# interval of zero width, which gets no mark.
+push_cut!(integrator) = nothing
+function push_cut!(integrator::ODEIntegrator)
+    iszero(integrator.curve_dt) && return nothing
+    id = integrator.sol.interp
+    id isa InterpolationData || return nothing
+    i = integrator.saveiter
+    i > 1 && integrator.sol.t[i - 1] == integrator.t && return nothing
+    push!(id.cut_index, integrator.saveiter_dense)
+    push!(id.cut_dt, integrator.curve_dt)
+    return nothing
+end
+
+# Remove the cut marks of the intervals past `n` after `ks` is truncated to length `n`.
+# The method for `InterpolationData` is in `interp_func.jl`.
+_truncate_cuts!(id, n) = nothing
 
 # Cleanup after savevalues: resize k for dense output storage.
 # No-op when solution lacks k-array storage (SDE/RODE).
@@ -514,6 +536,7 @@ function finalize_solution_storage!(integrator)
     if integrator.opts.dense && _has_ks(integrator) && !(integrator.sol isa DAESolution)
         resize!(integrator.sol.k, integrator.saveiter_dense)
         sizehint!(integrator.sol.k, integrator.saveiter_dense)
+        _truncate_cuts!(integrator.sol.interp, integrator.saveiter_dense)
     end
     # Noise finalization (SDE only)
     W = _get_W(integrator)
@@ -564,20 +587,7 @@ function solution_endpoint_match_cur_integrator!(integrator)
         end
         if (isdiscretealg(integrator.alg) || integrator.opts.dense) && _has_ks(integrator)
             integrator.saveiter_dense += 1
-            if integrator.opts.dense
-                if integrator.opts.save_idxs === nothing
-                    copyat_or_push!(
-                        integrator.sol.k, integrator.saveiter_dense,
-                        integrator.k
-                    )
-                else
-                    copyat_or_push!(
-                        integrator.sol.k, integrator.saveiter_dense,
-                        [k[integrator.opts.save_idxs] for k in integrator.k],
-                        false
-                    )
-                end
-            end
+            integrator.opts.dense && push_dense!(integrator)
         end
         if is_composite_algorithm(integrator.alg)
             copyat_or_push!(

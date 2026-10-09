@@ -42,3 +42,10 @@ function SciMLBase.interp_summary(
         "specialized 4th (Rodas6P = 5th) order \"free\" stiffness-aware interpolation" :
         "1st order linear"
 end
+
+# The interpolant and the lazy stages do not read `y₁`, so a cut step keeps the curve of
+# the completed step. See `OrdinaryDiffEqCore.uses_cut_curve`.
+OrdinaryDiffEqCore.uses_cut_curve(::Union{
+    Rosenbrock23Cache, Rosenbrock23ConstantCache,
+    Rosenbrock32Cache, Rosenbrock32ConstantCache,
+}) = true

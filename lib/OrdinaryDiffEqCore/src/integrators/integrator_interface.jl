@@ -24,13 +24,14 @@ function _change_t_via_interpolation!(
                 "a saved point would leave the saved times out of order."
         )
     elseif t != integrator.t
+        W = _get_W(integrator)
+        isnothing(W) && _start_cut_curve!(integrator, t, reinitialize_alg)
         if is_constant_cache(integrator.cache)
             integrator.u = integrator(t)
         else
             integrator(integrator.u, t)
         end
         # SDE path: reject noise to rewind W/P, update sqdt
-        W = _get_W(integrator)
         if !isnothing(W)
             reject_noise!(W, t - integrator.tprev, integrator.u, integrator.p)
             reject_noise!(_get_P(integrator), t - integrator.tprev, integrator.u, integrator.p)
@@ -63,6 +64,32 @@ function SciMLBase.change_t_via_interpolation!(
     return nothing
 end
 
+# A callback cuts the step [tprev, t] at an earlier time. For a cache with
+# `uses_cut_curve`, keep the curve of the completed step as the dense output of the cut
+# interval: remember the length of the completed step, and do not recompute the stages.
+_start_cut_curve!(integrator, t, reinitialize_alg) = nothing
+function _start_cut_curve!(integrator::ODEIntegrator, t, reinitialize_alg)
+    iszero(integrator.curve_dt) || return nothing     # a second cut in the same step
+    integrator.opts.calck || return nothing
+    integrator.tdir * t < integrator.tdir * integrator.t || return nothing
+    uses_cut_curve(integrator.cache) || return nothing
+    integrator.sol.interp isa InterpolationData || return nothing
+    if integrator.isdae
+        # Reinitialization can move the state at the event off the curve.
+        alg = isnothing(reinitialize_alg) ? integrator.initializealg : reinitialize_alg
+        alg isa Union{SciMLBase.NoInit, SciMLBase.CheckInit} || return nothing
+    end
+    # `integrator.dt` is the step length that root finding used for this curve.
+    integrator.curve_dt = integrator.dt
+    return nothing
+end
+
+_reset_cut_curve!(integrator) = nothing
+function _reset_cut_curve!(integrator::ODEIntegrator)
+    integrator.curve_dt = zero(integrator.curve_dt)
+    return nothing
+end
+
 function SciMLBase.reeval_internals_due_to_modification!(
         integrator::ODEIntegrator, continuous_modification = true;
         callback_initializealg = nothing
@@ -76,7 +103,9 @@ function SciMLBase.reeval_internals_due_to_modification!(
         )
     end
 
-    if continuous_modification && integrator.opts.calck
+    # After a cut with `uses_cut_curve`, the stages of the completed step stay: the dense
+    # output of the cut interval evaluates them with `integrator.curve_dt`.
+    if continuous_modification && integrator.opts.calck && iszero(integrator.curve_dt)
         resize!(integrator.k, integrator.kshortsize) # Reset k for next step!
         alg = unwrap_alg(integrator, false)
         # A non-lazy interpolant keeps its extra stages inside kshortsize, so the
@@ -94,9 +123,11 @@ end
     isdiscretecache(integrator.cache) &&
         error("Derivatives are not defined for this stepper.")
     return if get_current_isfsal(integrator.alg, integrator.cache) &&
-            !get_current_has_stiff_interpolation(integrator.alg, integrator.cache)
+            !get_current_has_stiff_interpolation(integrator.alg, integrator.cache) &&
+            iszero(integrator.curve_dt)
         # Special stiff interpolations do not store the
-        # right value in fsallast
+        # right value in fsallast. After a cut with `uses_cut_curve`, fsallast is f at
+        # the end of the completed step.
         integrator.fsallast
     elseif isempty(integrator.k)
         # Before cache initialization, k is empty and interpolation
@@ -129,7 +160,8 @@ end
         out .= integrator.cache.tmp
     else
         return if get_current_isfsal(integrator.alg, integrator.cache) &&
-                !get_current_has_stiff_interpolation(integrator.alg, integrator.cache)
+                !get_current_has_stiff_interpolation(integrator.alg, integrator.cache) &&
+                iszero(integrator.curve_dt)
             # Special stiff interpolations do not store the
             # right value in fsallast
             out .= integrator.fsallast
@@ -550,6 +582,7 @@ function SciMLBase.reinit!(
 
     integrator.t = t0
     integrator.tprev = t0
+    _reset_cut_curve!(integrator)
 
     # Initialization changes the ImplicitDiscrete start state, so run it before
     # save_start and preserve any InitialFailure instead of resetting it below.
@@ -583,6 +616,7 @@ function SciMLBase.reinit!(
         resize!(integrator.sol.t, resize_start)
         if _has_ks(integrator)
             resize!(integrator.sol.k, resize_start)
+            _truncate_cuts!(integrator.sol.interp, resize_start)
         end
 
         if integrator.opts.save_start || (!isempty(saveat) && saveat[1] == tType(t0))
@@ -702,6 +736,7 @@ function SciMLBase.set_t!(integrator::ODEIntegrator, t::Real)
             reinit_controller = false
         )
     else
+        _reset_cut_curve!(integrator)
         integrator.t = t
     end
 end

@@ -139,3 +139,43 @@ end
     end
     out
 end
+
+# Derivatives, and values with `idxs`, use the generic Hermite interpolant. Radau stores
+# the stage increments `zⱼ` in `k[3:end]` and the last node is `cₛ = 1`, so the end state
+# of the completed step is `y₀ + zₛ` (`perform_step!` computes `u = uprev + zₛ`). The
+# Hermite interpolant gets this end state in place of `y₁`, so it does not read `y₁`
+# (see `OrdinaryDiffEqCore.uses_cut_curve`). For a normal step the result is unchanged.
+const RADAU_CACHES = Union{
+    RadauIIA3ConstantCache, RadauIIA3Cache, RadauIIA5ConstantCache, RadauIIA5Cache,
+    RadauIIA9ConstantCache, RadauIIA9Cache, AdaptiveRadauConstantCache, AdaptiveRadauCache,
+}
+
+_radau_last(::Union{RadauIIA3ConstantCache, RadauIIA3Cache}) = 4
+_radau_last(::Union{RadauIIA5ConstantCache, RadauIIA5Cache}) = 5
+_radau_last(::Union{RadauIIA9ConstantCache, RadauIIA9Cache}) = 7
+_radau_last(cache::Union{AdaptiveRadauConstantCache, AdaptiveRadauCache}) = 2 + cache.num_stages
+
+function _radau_y₁(cache, y₀, k)
+    zₛ = k[_radau_last(cache)]
+    return y₀ isa Number ? y₀ + zₛ : y₀ .+ zₛ
+end
+
+function _ode_interpolant(
+        Θ, dt, y₀, y₁, k, cache::RADAU_CACHES, idxs, T::Type{Val{D}}, differential_vars
+    ) where {D}
+    return invoke(
+        OrdinaryDiffEqCore._ode_interpolant,
+        Tuple{Any, Any, Any, Any, Any, Any, Any, Type{Val{D}}, Any},
+        Θ, dt, y₀, _radau_y₁(cache, y₀, k), k, cache, idxs, T, differential_vars
+    )
+end
+
+function _ode_interpolant!(
+        out, Θ, dt, y₀, y₁, k, cache::RADAU_CACHES, idxs, T::Type{Val{D}}, differential_vars
+    ) where {D}
+    return invoke(
+        OrdinaryDiffEqCore._ode_interpolant!,
+        Tuple{Any, Any, Any, Any, Any, Any, Any, Any, Type{Val{D}}, Any},
+        out, Θ, dt, y₀, _radau_y₁(cache, y₀, k), k, cache, idxs, T, differential_vars
+    )
+end

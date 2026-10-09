@@ -865,3 +865,10 @@ function alg_cache(
         Convergence, alg.step_limiter!, num_stages
     )
 end
+
+# The interpolant and the lazy stages do not read `y₁`, so a cut step keeps the curve of
+# the completed step. See `OrdinaryDiffEqCore.uses_cut_curve`.
+OrdinaryDiffEqCore.uses_cut_curve(::Union{
+    RadauIIA3Cache, RadauIIA3ConstantCache, RadauIIA5Cache, RadauIIA5ConstantCache,
+    RadauIIA9Cache, RadauIIA9ConstantCache, AdaptiveRadauCache, AdaptiveRadauConstantCache,
+}) = true
