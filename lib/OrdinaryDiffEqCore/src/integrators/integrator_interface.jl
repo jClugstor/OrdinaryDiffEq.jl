@@ -74,6 +74,12 @@ function _start_cut_curve!(integrator::ODEIntegrator, t, reinitialize_alg)
     integrator.tdir * t < integrator.tdir * integrator.t || return nothing
     uses_cut_curve(integrator.cache) || return nothing
     integrator.sol.interp isa InterpolationData || return nothing
+    # The saved cut interval needs its left knot `tprev` in the saved times. With
+    # `save_start = false`, the first step has no left knot.
+    if integrator.opts.dense
+        i = integrator.saveiter
+        (i > 0 && integrator.sol.t[i] == integrator.tprev) || return nothing
+    end
     if integrator.isdae
         # Reinitialization can move the state at the event off the curve.
         alg = isnothing(reinitialize_alg) ? integrator.initializealg : reinitialize_alg
@@ -129,6 +135,9 @@ end
         # right value in fsallast. After a cut with `uses_cut_curve`, fsallast is f at
         # the end of the completed step.
         integrator.fsallast
+    elseif _du_from_f_after_cut(integrator)
+        increment_nf!(integrator.stats, 1)
+        _get_du_fallback(integrator)
     elseif isempty(integrator.k)
         # Before cache initialization, k is empty and interpolation
         # cannot be used. Compute du directly.
@@ -137,6 +146,12 @@ end
         integrator(integrator.t, Val{1})
     end
 end
+
+# After a cut with `uses_cut_curve`, the event is inside the completed step. There the
+# derivative of the interpolant is less accurate than `f` at the event state, so evaluate
+# `f`. A DAE keeps the interpolant, because `f` does not give `du` for it.
+@inline _du_from_f_after_cut(integrator::ODEIntegrator) =
+    !iszero(integrator.curve_dt) && !integrator.isdae
 
 @inline function _get_du_fallback(integrator::ODEIntegrator)
     return if integrator.isdae
@@ -165,6 +180,9 @@ end
             # Special stiff interpolations do not store the
             # right value in fsallast
             out .= integrator.fsallast
+        elseif _du_from_f_after_cut(integrator)
+            increment_nf!(integrator.stats, 1)
+            _get_du_fallback!(out, integrator)
         elseif isempty(integrator.k)
             # Before cache initialization, k is empty and interpolation
             # cannot be used. Compute du directly.

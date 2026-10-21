@@ -128,6 +128,9 @@ end
 
 # Handles step rejection in loopheader: adjust dt, reject noise, and call post_step_reject!.
 function handle_step_rejection!(integrator)
+    # An affect can reject the step after a cut (`force_stepfail`); `apply_step!` then
+    # does not run.
+    _reset_cut_curve!(integrator)
     @SciMLMessage(
         lazy"Step rejected: t = $(integrator.t), EEst = $(get_EEst(integrator))",
         integrator.opts.verbose, :step_rejected

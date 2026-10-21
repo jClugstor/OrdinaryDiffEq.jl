@@ -116,15 +116,17 @@ completed step. If `true`, the stages of the completed step are not recomputed f
 shorter step. The interpolant of the cut interval is evaluated with the length of the
 completed step instead, so it ends exactly at the state that the callback found.
 
-A cache may return `true` only if its `_ode_interpolant[!]` and its `_ode_addsteps!`
-(without `always_calc_begin`) do not read the value of `y₁` / `u`. The cut interval
-passes the state at the event as `y₁`, not the end state of the completed step.
+A cache may return `true` only if its `_ode_interpolant[!]` does not read the value of
+`y₁` / `u`, and its `_ode_addsteps!` does not read it when it extends a full `k` (the
+lazy stages). The cut interval passes the state at the event as `y₁`, not the end state
+of the completed step. The branch that computes `k` again from the start
+(`length(k) < kshortsize` or `always_calc_begin`) can read `u`: a cut interval always
+has all `kshortsize` stages of the completed step in `k`, and a cut skips the
+recomputation in `reeval_internals_due_to_modification!`.
 """
 uses_cut_curve(cache) = false
-uses_cut_curve(cache::CompositeCache) = _uses_cut_curve(cache.caches, cache.current)
-@inline _uses_cut_curve(caches::Tuple{}, i) = false
-@inline function _uses_cut_curve(caches::Tuple, i)
-    return i == 1 ? uses_cut_curve(first(caches)) : _uses_cut_curve(Base.tail(caches), i - 1)
+function uses_cut_curve(cache::CompositeCache)
+    return _eval_index(uses_cut_curve, cache.caches, cache.current)::Bool
 end
 function uses_cut_curve(cache::DefaultCache)
     current = cache.current

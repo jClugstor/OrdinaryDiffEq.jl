@@ -62,3 +62,44 @@ end
 any(.!(passed)) &&
     @warn("The following algorithms failed the continuous callback test: $(vcat(algs, algs, lazy_alg, lazy_alg)[.!(passed)])")
 @test all(passed)
+
+# A cut step keeps the stages of the completed step. These tests cover the cases where the
+# saved solution or `get_du` cannot use that curve directly.
+osc(u, p, t) = [u[2], -u[1]]
+osc!(du, u, p, t) = (du[1] = u[2]; du[2] = -u[1]; nothing)
+
+@testset "Cut in the first step with save_start = false" begin
+    # The first saved interval has no left knot, so its derivative must not read `ts[0]`.
+    cut_cb = ContinuousCallback((u, t, i) -> t - 0.05, i -> (i.u[2] = -i.u[2]))
+    sol = solve(
+        ODEProblem(osc, [1.0, 0.0], (0.0, 3.0)), Tsit5();
+        save_start = false, dt = 0.1, callback = cut_cb
+    )
+    exact = [-sin(0.05), -cos(0.05)]
+    @test sol(sol.t[1], Val{1}) ≈ exact atol = 1.0e-6
+    @test sol([sol.t[1]], Val{1}).u[1] ≈ exact atol = 1.0e-6
+    out = zeros(2)
+    sol(out, sol.t[1], Val{1})
+    @test out ≈ exact atol = 1.0e-6
+end
+
+@testset "get_du after a cut ($(nameof(f)))" for f in (osc, osc!)
+    # Inside the affect, the event is inside the completed step. `get_du` must give f at
+    # the event state, not the derivative of the interpolant.
+    errs = Float64[]
+    affect! = function (integ)
+        exact = [integ.u[2], -integ.u[1]]
+        push!(errs, maximum(abs, get_du(integ) - exact))
+        du = similar(integ.u)
+        get_du!(du, integ)
+        push!(errs, maximum(abs, du - exact))
+        integ.u[2] = -integ.u[2]
+    end
+    solve(
+        ODEProblem(f, [1.0, 0.0], (0.0, 10.0)), Tsit5();
+        reltol = 1.0e-9, abstol = 1.0e-9,
+        callback = ContinuousCallback((u, t, i) -> u[1], affect!)
+    )
+    @test !isempty(errs)
+    @test maximum(errs) <= 1.0e-12
+end

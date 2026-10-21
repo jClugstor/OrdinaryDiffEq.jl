@@ -20,6 +20,7 @@ the `differential_vars` mask (for DAEs), and a `sensitivitymode` flag. Calling
 """
 struct InterpolationData{
         F, uType, tType, kType, algType <: Union{Nothing, Vector{Int}}, cacheType, DV,
+        cdtType <: AbstractVector,
     } <:
     OrdinaryDiffEqInterpolation{cacheType}
     f::F
@@ -39,7 +40,7 @@ struct InterpolationData{
     # `cut_dt` the length of the completed step for each. The dense output of such
     # an interval is the curve of the completed step. See `_cut_dt`.
     cut_index::Vector{Int}
-    cut_dt::tType
+    cut_dt::cdtType
 end
 
 function InterpolationData(

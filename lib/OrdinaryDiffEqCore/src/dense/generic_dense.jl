@@ -545,8 +545,9 @@ end
         idxs, deriv
     )
     Θ = similar(t)
+    dt = _curve_dt(integrator)
     @inbounds @simd ivdep for i in eachindex(t)
-        Θ[i] = (t[i] - integrator.tprev) / _curve_dt(integrator)
+        Θ[i] = (t[i] - integrator.tprev) / dt
     end
     return [ode_interpolant!(val, ϕ, integrator, idxs, deriv) for ϕ in Θ]
 end
